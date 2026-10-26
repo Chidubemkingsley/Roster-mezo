@@ -1,0 +1,36 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  forge:
+    name: Forge build, tests, and static checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Build contracts
+        run: forge build
+
+      - name: Run default test profile
+        run: forge test -vvv
+
+      - name: Run CI test profile
+        run: FOUNDRY_PROFILE=ci forge test -vvv
+
+      - name: Check formatting
+        run: forge fmt --check
+
+      - name: Run static consistency checks
+        run: python3 scripts/static_validate.py

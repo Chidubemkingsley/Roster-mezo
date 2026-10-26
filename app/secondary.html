@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0c0b" />
+    <meta
+      name="description"
+      content="Roster secondary market: escrow position lots, list a MUSD ask, fill a seller's listing, or cancel before expiry on Mezo testnet."
+    />
+    <title>Secondary — Roster</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23ff6b35'/%3E%3Cpath d='M9 9h9a5 5 0 0 1 0 10h-5v4H9V9Z' fill='%230a0c0b'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body data-page="secondary">
+    <svg class="svg-sprite" aria-hidden="true">
+      <symbol id="i-arrow-up-right" viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9" /></symbol>
+      <symbol id="i-arrow-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7" /></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24">
+        <rect x="9" y="9" width="11" height="11" rx="2" />
+        <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+      </symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24">
+        <rect x="4" y="10" width="16" height="10" rx="2" />
+        <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+      </symbol>
+      <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M3 12h4l2-6 4 12 2-6h6" /></symbol>
+      <symbol id="i-layers" viewBox="0 0 24 24">
+        <path d="m12 3 9 5-9 5-9-5 9-5Z" /><path d="m3 13 9 5 9-5" /><path d="m3 18 9 5 9-5" />
+      </symbol>
+      <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Z" /></symbol>
+      <symbol id="i-wallet" viewBox="0 0 24 24">
+        <rect x="3" y="6" width="18" height="13" rx="3" /><path d="M3 9h18" /><path d="M16 14h2" />
+      </symbol>
+      <symbol id="i-external" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4 10 14" /><path d="M20 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4" /></symbol>
+      <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 2v5M12 17v5M2 12h5M17 12h5M5 5l3.5 3.5M15.5 15.5 19 19M19 5l-3.5 3.5M8.5 15.5 5 19" /></symbol>
+    </svg>
+
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+
+    <header class="site-header">
+      <a class="brand" href="./index.html" aria-label="Roster home">
+        <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span class="brand-word">Roster</span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="./trade.html">Trade</a>
+        <a href="./secondary.html" class="is-active" aria-current="page">Secondary</a>
+        <a href="./vault.html">Vault</a>
+        <a href="./activity.html">Activity</a>
+      </nav>
+      <div class="header-actions">
+        <span class="network-pill"><span class="live-dot"></span> Mezo Testnet</span>
+        <button class="btn btn-small btn-ghost" id="connectBtn" type="button">
+          <svg class="icon"><use href="#i-wallet" /></svg>
+          <span id="connectLabel">Connect wallet</span>
+        </button>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="page-hero">
+        <div class="page-hero-copy">
+          <div class="eyebrow"><span class="live-dot"></span> 02 · Secondary market</div>
+          <h1>Exit before expiry.</h1>
+          <p class="lede">
+            Sellers escrow position lots into a public ask book. Buyers pay MUSD directly to
+            the seller. No matching engine, no bids, no fees, and no promise that an ask will
+            be filled.
+          </p>
+          <div class="page-actions">
+            <a class="btn btn-primary" href="#list">List a position <svg class="icon"><use href="#i-arrow-down" /></svg></a>
+            <a class="btn btn-ghost" href="#book">Browse open asks <svg class="icon"><use href="#i-arrow-up-right" /></svg></a>
+          </div>
+          <div class="page-meta">
+            <span><svg class="icon"><use href="#i-layers" /></svg> Escrowed lots</span>
+            <span><svg class="icon"><use href="#i-wallet" /></svg> Direct MUSD payment</span>
+            <span><svg class="icon"><use href="#i-clock" /></svg> Closes at maturity</span>
+          </div>
+        </div>
+
+        <aside class="hero-card">
+          <div class="hero-card-head">
+            <span class="micro">LIVE ASK BOOK</span>
+            <span class="status-chip"><span class="live-dot"></span> On-chain</span>
+          </div>
+          <div class="hero-card-big" id="bookHeroAsks">—</div>
+          <span class="micro-sub">open listings across all series</span>
+          <div class="hero-card-grid">
+            <div>
+              <span class="micro">LOTS FOR SALE</span>
+              <strong id="bookHeroLots">—</strong>
+            </div>
+            <div>
+              <span class="micro">LOWEST ASK</span>
+              <strong id="bookHeroBest">—</strong>
+            </div>
+          </div>
+          <p class="hero-card-note">
+            The book is ask-only. A position is only liquid if another wallet chooses to fill it.
+          </p>
+          <div class="hero-card-foot">
+            <a class="text-link" id="bookExplorer" href="https://explorer.test.mezo.org/address/0xc97B2fe5ba7e68ed7b52a657a137Cf636149cd25" target="_blank" rel="noreferrer">Order book in explorer <svg class="icon"><use href="#i-external" /></svg></a>
+          </div>
+        </aside>
+      </section>
+
+      <section class="section" id="secondary">
+        <div class="section-head">
+          <div class="section-copy">
+            <span class="eyebrow">Open market</span>
+            <h2>List, fill, or cancel.</h2>
+            <p>
+              Listing escrows the lots in the order book. Cancel to return them. A fill pays
+              the seller directly in MUSD and transfers the lots to the buyer.
+            </p>
+          </div>
+          <div class="series-switcher" id="seriesTabs" aria-label="Series selector"></div>
+        </div>
+
+        <div class="secondary-grid">
+          <article class="panel" id="list">
+            <div class="panel-head">
+              <div class="panel-title">
+                <span class="icon-box"><svg class="icon"><use href="#i-layers" /></svg></span>
+                <div>
+                  <h3>List a position</h3>
+                  <p id="listSeriesName">—</p>
+                </div>
+              </div>
+              <span class="chip chip-soft" id="secPositionAddress">No wallet</span>
+            </div>
+
+            <div class="compact-position">
+              <div>
+                <span class="micro">YOUR LOTS</span>
+                <strong id="secPosLots">—</strong>
+              </div>
+              <div>
+                <span class="micro">ERC-20 BTC</span>
+                <strong id="secPosBtc">—</strong>
+              </div>
+              <div>
+                <span class="micro">MUSD</span>
+                <strong id="secPosMusd">—</strong>
+              </div>
+            </div>
+
+            <div class="field">
+              <div class="field-label"><label for="listLots">Lots to escrow</label><span id="listOwned">— owned</span></div>
+              <div class="input-wrap">
+                <input id="listLots" type="number" min="1" step="1" placeholder="0" />
+                <span class="input-suffix">LOTS</span>
+                <button class="max-btn" id="listMax" type="button">MAX</button>
+              </div>
+            </div>
+            <div class="field">
+              <div class="field-label"><label for="listPrice">Ask price</label><span>MUSD per lot</span></div>
+              <div class="input-wrap">
+                <input id="listPrice" type="number" min="0" step="0.000001" placeholder="0.002" />
+                <span class="input-suffix">MUSD</span>
+              </div>
+            </div>
+            <div class="quote quote-compact">
+              <div><span>Gross proceeds</span><strong id="listProceeds">— MUSD</strong></div>
+              <div><span>Escrow</span><strong id="listEscrow">— lots</strong></div>
+            </div>
+            <button class="btn btn-secondary btn-block" id="listBtn" type="button">Connect wallet to list</button>
+            <p class="fineprint">
+              Listings must be cancelled before maturity. Escrowed lots cannot be exercised
+              while listed. The order book does not custody MUSD and takes no fee.
+            </p>
+          </article>
+
+          <article class="panel" id="book">
+            <div class="panel-head">
+              <div class="panel-title">
+                <span class="icon-box"><svg class="icon"><use href="#i-pulse" /></svg></span>
+                <div>
+                  <h3>Open asks</h3>
+                  <p>All factory-registered series</p>
+                </div>
+              </div>
+              <div class="book-summary">
+                <span class="micro">OPEN ASKS</span>
+                <strong id="bookOpen">—</strong>
+                <button class="text-btn" id="refreshListings" type="button">Refresh</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Series</th>
+                    <th>Seller</th>
+                    <th class="num">Lots</th>
+                    <th class="num">Price</th>
+                    <th class="num">Total</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="listingsBody">
+                  <tr><td colspan="7" class="empty">Loading listings…</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="fineprint">
+              A fill is a direct MUSD payment to the seller. The book fills all remaining lots
+              in this interface; partial fills are available in the contract. The book freezes
+              at maturity.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="secondary-rules">
+        <div class="section-head">
+          <div class="section-copy">
+            <span class="eyebrow">Settlement rules</span>
+            <h2>What a fill actually does.</h2>
+            <p>
+              There is no clearinghouse. The buyer's MUSD moves to the seller, the seller's
+              escrowed lots move to the buyer, and the series ledger is updated in the same
+              transaction.
+            </p>
+          </div>
+        </div>
+        <div class="feature-grid">
+          <article class="feature-card">
+            <span class="feature-index">BEFORE FILL</span>
+            <h3>Seller approves the book.</h3>
+            <p>
+              The order book calls <span class="mono">transferFrom</span> on the series to
+              escrow exactly the listed number of lots. The seller keeps the ask price fixed
+              until cancel or fill.
+            </p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-index">AT FILL</span>
+            <h3>Buyer approves MUSD.</h3>
+            <p>
+              The buyer approves the total MUSD amount, then the book pays the seller and
+              transfers the lots. No partial fill is offered by this interface.
+            </p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-index">AT MATURITY</span>
+            <h3>Everything freezes.</h3>
+            <p>
+              Position transfers, new listings, and fills stop at expiry. Cancel any ask you
+              do not want stuck in the book before then.
+            </p>
+          </article>
+        </div>
+        <div class="callout callout-warning">
+          <svg class="icon"><use href="#i-clock" /></svg>
+          <div>
+            <strong>No liquidity guarantee.</strong>
+            <p>
+              An ask is not a redemption right. If no buyer fills it, the seller can cancel and
+              exercise (if in the money) or let the position expire worthless. The live book
+              currently has one demo listing; that is not evidence of organic demand.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="disclosure" aria-label="Risk disclosures">
+        <div class="disclosure-item">
+          <span class="disclosure-index">01</span>
+          <div>
+            <strong>An ask can go unfilled.</strong>
+            <p>There is no bid side, market maker, or protocol buyback. The best exit may be no exit.</p>
+          </div>
+        </div>
+        <div class="disclosure-item">
+          <span class="disclosure-index">02</span>
+          <div>
+            <strong>Escrowed lots are locked.</strong>
+            <p>Listed positions cannot be exercised until the listing is cancelled. Cancel before maturity.</p>
+          </div>
+        </div>
+        <div class="disclosure-item">
+          <span class="disclosure-index">03</span>
+          <div>
+            <strong>Price is the seller's, not a mark.</strong>
+            <p>The displayed ask is not an oracle price or a guarantee of fair value. Do your own pricing.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-brand">
+        <span class="brand-mark small" aria-hidden="true"><span></span><span></span><span></span></span>
+        <div>
+          <strong>Roster</strong>
+          <span>Fixed-series BTC puts on Mezo.</span>
+        </div>
+      </div>
+      <div class="footer-links">
+        <a href="./trade.html">Trade</a>
+        <a href="./secondary.html">Secondary</a>
+        <a href="./vault.html">Vault</a>
+        <a href="./activity.html">Activity</a>
+        <a href="https://mezo.org" target="_blank" rel="noreferrer">Mezo <svg class="icon"><use href="#i-external" /></svg></a>
+        <a href="https://explorer.test.mezo.org" target="_blank" rel="noreferrer">Explorer <svg class="icon"><use href="#i-external" /></svg></a>
+        <span>Built for Mezo Wave 1 · 2026</span>
+      </div>
+    </footer>
+
+    <div class="toast-stack" id="toastStack" aria-live="polite"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

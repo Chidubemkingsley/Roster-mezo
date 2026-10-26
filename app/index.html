@@ -1,0 +1,716 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0c0b" />
+    <meta
+      name="description"
+      content="Roster is a fixed-series, physically settled BTC put on Mezo, live on testnet. Fixed strike, fixed expiry, MUSD collateral, ERC-20 BTC settlement."
+    />
+    <title>Roster — Fixed-series BTC puts on Mezo</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23ff6b35'/%3E%3Cpath d='M9 9h9a5 5 0 0 1 0 10h-5v4H9V9Z' fill='%230a0c0b'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body data-page="home">
+    <svg class="svg-sprite" aria-hidden="true">
+      <symbol id="i-arrow-up-right" viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9" /></symbol>
+      <symbol id="i-arrow-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7" /></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24">
+        <rect x="9" y="9" width="11" height="11" rx="2" />
+        <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+      </symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24">
+        <rect x="4" y="10" width="16" height="10" rx="2" />
+        <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+      </symbol>
+      <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M3 12h4l2-6 4 12 2-6h6" /></symbol>
+      <symbol id="i-layers" viewBox="0 0 24 24">
+        <path d="m12 3 9 5-9 5-9-5 9-5Z" /><path d="m3 13 9 5 9-5" /><path d="m3 18 9 5 9-5" />
+      </symbol>
+      <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Z" /></symbol>
+      <symbol id="i-wallet" viewBox="0 0 24 24">
+        <rect x="3" y="6" width="18" height="13" rx="3" /><path d="M3 9h18" /><path d="M16 14h2" />
+      </symbol>
+      <symbol id="i-external" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4 10 14" /><path d="M20 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4" /></symbol>
+      <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 2v5M12 17v5M2 12h5M17 12h5M5 5l3.5 3.5M15.5 15.5 19 19M19 5l-3.5 3.5M8.5 15.5 5 19" /></symbol>
+    </svg>
+
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+
+    <header class="site-header">
+      <a class="brand" href="./index.html" aria-label="Roster home">
+        <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span class="brand-word">Roster</span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="./trade.html">Trade</a>
+        <a href="./secondary.html">Secondary</a>
+        <a href="./vault.html">Vault</a>
+        <a href="./activity.html">Activity</a>
+      </nav>
+      <div class="header-actions">
+        <span class="network-pill"><span class="live-dot"></span> Mezo Testnet</span>
+        <button class="btn btn-small btn-ghost" id="connectBtn" type="button">
+          <svg class="icon"><use href="#i-wallet" /></svg>
+          <span id="connectLabel">Connect wallet</span>
+        </button>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="hero">
+        <div class="hero-copy">
+          <div class="eyebrow">
+            <span class="live-dot"></span> Live on Mezo testnet
+            <span class="slash">/</span> Wave 1
+          </div>
+          <h1>Own the downside.<br /><em>Settle in MUSD.</em></h1>
+          <p class="lede">
+            A fixed-strike, fixed-expiry BTC put series, collateralized in MUSD and funded
+            through a native-BTC Mezo trove. Exercise before maturity to deliver ERC-20 BTC
+            and receive the exact strike in MUSD.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="./trade.html">Open trading <svg class="icon"><use href="#i-arrow-up-right" /></svg></a>
+            <a class="btn btn-ghost" href="#mechanism">Read the mechanism <svg class="icon"><use href="#i-arrow-down" /></svg></a>
+          </div>
+          <div class="hero-foot">
+            <span>1 lot = 0.000001 BTC</span>
+            <span class="dot-sep"></span>
+            <span>ERC-20 BTC settlement</span>
+            <span class="dot-sep"></span>
+            <span>Mezo price feed</span>
+          </div>
+        </div>
+
+        <aside class="ticket" aria-label="Live series ticket">
+          <div class="ticket-top">
+            <span class="status-chip" id="ticketStatus"><span class="live-dot"></span> Active</span>
+            <span class="ticket-symbol" id="ticketSymbol">rBTC-PUT-T</span>
+          </div>
+          <div class="ticket-strike">
+            <span class="micro">STRIKE</span>
+            <div class="ticket-big"><span id="ticketStrike">$80,000</span><span class="ticket-per">/ BTC</span></div>
+          </div>
+          <div class="ticket-divider"></div>
+          <div class="ticket-grid">
+            <div>
+              <span class="micro">PREMIUM</span>
+              <strong id="ticketPremium">0.001 MUSD</strong>
+              <span class="micro-sub">per lot</span>
+            </div>
+            <div>
+              <span class="micro">EXPIRY</span>
+              <strong id="ticketExpiry">24 Nov 2026</strong>
+              <span class="micro-sub" id="ticketCountdown">—</span>
+            </div>
+            <div>
+              <span class="micro">BTC SPOT</span>
+              <strong id="ticketSpot">—</strong>
+              <span class="micro-sub">Mezo PriceFeed</span>
+            </div>
+            <div>
+              <span class="micro">ACTIVE LOTS</span>
+              <strong id="ticketLots">—</strong>
+              <span class="micro-sub" id="ticketCapacity">—</span>
+            </div>
+          </div>
+          <div class="ticket-meter"><span id="ticketMeter"></span></div>
+          <div class="ticket-foot">
+            <span>Writer</span>
+            <a id="ticketWriter" class="mono" target="_blank" rel="noreferrer">—</a>
+            <span class="mini-chip" id="ticketWriterType">Trove-backed</span>
+          </div>
+          <span class="ticket-notch ticket-notch-left"></span>
+          <span class="ticket-notch ticket-notch-right"></span>
+        </aside>
+      </section>
+
+      <section class="stat-strip" aria-label="Live series statistics">
+        <div>
+          <span class="micro">BTC SPOT · MEZO</span>
+          <strong id="statSpot">—</strong>
+          <span class="micro-sub" id="statSpotSub">live price feed</span>
+        </div>
+        <div>
+          <span class="micro">SERIES COLLATERAL</span>
+          <strong id="statCollateral">—</strong>
+          <span class="micro-sub">MUSD in the series contract</span>
+        </div>
+        <div>
+          <span class="micro">PREMIUM PAID</span>
+          <strong id="statPremium">—</strong>
+          <span class="micro-sub">cumulative, decoded events</span>
+        </div>
+        <div>
+          <span class="micro">TROVE HEALTH</span>
+          <strong id="statIcr">—</strong>
+          <span class="micro-sub">application minimum <span id="statMinIcr">150%</span></span>
+        </div>
+        <div>
+          <span class="micro">POSITION TOKENS</span>
+          <strong id="statSupply">—</strong>
+          <span class="micro-sub">outstanding lots</span>
+        </div>
+      </section>
+
+      <section class="section" id="product">
+        <div class="section-head">
+          <div class="section-copy">
+            <span class="eyebrow">01 · The instrument</span>
+            <h2>A put reduced to fixed terms.</h2>
+            <p>
+              Roster does not run a funding-rate perpetual or an oracle-settled option.
+              Each series fixes its strike, premium, expiry, lot size, and settlement path
+              before it accepts a single MUSD.
+            </p>
+          </div>
+          <a class="btn btn-small btn-ghost" href="./trade.html">See the live series <svg class="icon"><use href="#i-arrow-up-right" /></svg></a>
+        </div>
+        <div class="feature-grid">
+          <article class="feature-card">
+            <span class="feature-index">FIXED 01</span>
+            <span class="icon-box"><svg class="icon"><use href="#i-lock" /></svg></span>
+            <h3>Strike is immutable.</h3>
+            <p>
+              The series stores <span class="mono">K_raw</span> at deployment. Every lot
+              settles against the same 80,000 MUSD/BTC strike; no governance vote can move it.
+            </p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-index">FIXED 02</span>
+            <span class="icon-box"><svg class="icon"><use href="#i-clock" /></svg></span>
+            <h3>Expiry is a timestamp.</h3>
+            <p>
+              Exercise is manual and only available before the expiry timestamp. There is no
+              auto-exercise and no settlement oracle deciding the payoff after the fact.
+            </p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-index">FIXED 03</span>
+            <span class="icon-box"><svg class="icon"><use href="#i-layers" /></svg></span>
+            <h3>The exit is an ask book.</h3>
+            <p>
+              A holder can escrow lots into a public ask. Buyers pay MUSD directly to the
+              seller. There is no bid side, matching engine, or liquidity promise.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="mechanism">
+        <div class="section-head">
+          <div class="section-copy">
+            <span class="eyebrow">02 · Mechanism</span>
+            <h2>Four contracts. One payoff.</h2>
+            <p>
+              The factory, series, order book, and trove vault are independent. The vault is
+              bound to one series, but the series does not depend on the vault to settle an
+              exercise. That separation is deliberate.
+            </p>
+          </div>
+        </div>
+
+        <div class="flow-row" aria-label="Roster mechanism flow">
+          <div class="flow-node">
+            <span class="micro">WRITER</span>
+            <strong>Native BTC trove</strong>
+            <span>Borrows MUSD against BTC</span>
+          </div>
+          <span class="flow-arrow" aria-hidden="true">→</span>
+          <div class="flow-node flow-node-accent">
+            <span class="micro">SERIES</span>
+            <strong>MUSD reserve</strong>
+            <span>Backs every position lot</span>
+          </div>
+          <span class="flow-arrow" aria-hidden="true">→</span>
+          <div class="flow-node">
+            <span class="micro">HOLDER</span>
+            <strong>ERC-20 BTC in</strong>
+            <span>Strike paid out in MUSD</span>
+          </div>
+        </div>
+
+        <div class="step-grid">
+          <article class="step-card">
+            <span class="step-number">01</span>
+            <h3>Register</h3>
+            <p>
+              The factory creates an immutable series with a writer, MUSD, ERC-20 BTC,
+              strike, premium, expiry, name, and symbol.
+            </p>
+          </article>
+          <article class="step-card">
+            <span class="step-number">02</span>
+            <h3>Fund</h3>
+            <p>
+              A writer deposits MUSD. The series reserves the full strike payout for every
+              lot sold and keeps the unused balance as excess.
+            </p>
+          </article>
+          <article class="step-card">
+            <span class="step-number">03</span>
+            <h3>Buy</h3>
+            <p>
+              A buyer pays the fixed MUSD premium and receives position tokens. Each whole
+              lot represents 0.000001 BTC of notional.
+            </p>
+          </article>
+          <article class="step-card">
+            <span class="step-number">04</span>
+            <h3>Exercise or exit</h3>
+            <p>
+              Before expiry, a holder can deliver ERC-20 BTC for the strike in MUSD, or list
+              the position in the secondary ask book.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="series">
+        <div class="section-head">
+          <div class="section-copy">
+            <span class="eyebrow">03 · Live series</span>
+            <h2>The terms, without the marketing.</h2>
+            <p>
+              These values are read from the main series, factory, and writer vault on Mezo
+              testnet. The series is active; the trove is active; the expiry has not arrived.
+            </p>
+          </div>
+          <span class="status-chip" id="landingStatus"><span class="live-dot"></span> Active</span>
+        </div>
+
+        <div class="terms-layout">
+          <article class="terms-panel">
+            <div class="terms-head">
+              <div>
+                <span class="micro">MAIN SERIES</span>
+                <h3 id="landingSeries">Roster Mezo BTC Put (Trove)</h3>
+              </div>
+              <span class="chip chip-soft" id="landingSymbol">rBTC-PUT-T</span>
+            </div>
+            <div class="term-row">
+              <span>Strike</span>
+              <strong id="landingStrike">$80,000 / BTC</strong>
+            </div>
+            <div class="term-row">
+              <span>Premium per lot</span>
+              <strong id="landingPremium">0.001 MUSD</strong>
+            </div>
+            <div class="term-row">
+              <span>Lot size</span>
+              <strong id="landingLotSize">0.000001 BTC</strong>
+            </div>
+            <div class="term-row">
+              <span>Expiry</span>
+              <strong id="landingExpiry">24 Nov 2026</strong>
+            </div>
+            <div class="term-row">
+              <span>Time remaining</span>
+              <strong id="landingCountdown">—</strong>
+            </div>
+            <div class="term-row">
+              <span>Settlement</span>
+              <strong>ERC-20 BTC delivered · MUSD paid</strong>
+            </div>
+            <div class="term-row">
+              <span>Writer</span>
+              <strong class="mono" id="landingWriter">—</strong>
+            </div>
+            <div class="term-row">
+              <span>Series collateral</span>
+              <strong id="landingCollateral">—</strong>
+            </div>
+            <div class="term-row">
+              <span>Active / remaining capacity</span>
+              <strong><span id="landingActiveLots">—</span> lots · <span id="landingCapacity">—</span> left</strong>
+            </div>
+            <div class="terms-foot">
+              <a class="btn btn-small btn-primary" href="./trade.html">Buy or exercise <svg class="icon"><use href="#i-arrow-up-right" /></svg></a>
+              <span class="micro-sub">Premium is non-refundable. Exercise is manual.</span>
+            </div>
+          </article>
+
+          <aside class="trove-summary">
+            <div class="panel-head">
+              <div class="panel-title">
+                <span class="icon-box"><svg class="icon"><use href="#i-shield" /></svg></span>
+                <div>
+                  <h3>Writer trove</h3>
+                  <p>Native BTC collateral · MUSD debt</p>
+                </div>
+              </div>
+              <span class="chip" id="landingTroveStatus">Active</span>
+            </div>
+            <div class="summary-metrics">
+              <div>
+                <span class="micro">NATIVE BTC</span>
+                <strong id="landingTroveCollateral">—</strong>
+              </div>
+              <div>
+                <span class="micro">MUSD DEBT</span>
+                <strong id="landingTroveDebt">—</strong>
+              </div>
+              <div>
+                <span class="micro">ICR</span>
+                <strong id="landingTroveIcr">—</strong>
+              </div>
+            </div>
+            <p class="summary-copy">
+              The trove is a separate vault. Its debt accrues interest and can be liquidated.
+              The series reserve is not free collateral and does not repay this debt
+              automatically.
+            </p>
+            <a class="text-link" href="./vault.html">Inspect vault accounting <svg class="icon"><use href="#i-arrow-up-right" /></svg></a>
+          </aside>
+        </div>
+      </section>
+
+      <section class="section" id="assets">
+        <div class="section-head">
+          <div class="section-copy">
+            <span class="eyebrow">04 · Asset separation</span>
+            <h2>Native BTC is not ERC-20 BTC.</h2>
+            <p>
+              Roster touches two different BTC representations. They have different roles,
+              different custody paths, and no automatic conversion inside this application.
+            </p>
+          </div>
+        </div>
+        <div class="asset-grid">
+          <article class="asset-card">
+            <span class="asset-tag">TROVE COLLATERAL</span>
+            <h3>Native BTC</h3>
+            <p>
+              Held by Mezo against the writer's MUSD debt. It secures the trove and is
+              exposed to liquidation if the collateral ratio falls. Roster never treats it
+              as exercise inventory.
+            </p>
+            <span class="asset-rule">Role: debt backing · Not delivered on exercise</span>
+          </article>
+          <article class="asset-card asset-card-accent">
+            <span class="asset-tag">EXERCISE ASSET</span>
+            <h3>ERC-20 BTC</h3>
+            <p>
+              The token at <span class="mono">0x7b7C…0000</span> that a holder approves and
+              delivers to the writer on exercise. The holder must already own it. The series
+              checks the balance and allowance before paying the strike.
+            </p>
+            <span class="asset-rule">Role: physical delivery · Must be acquired separately</span>
+          </article>
+        </div>
+        <div class="callout callout-warning">
+          <svg class="icon"><use href="#i-lock" /></svg>
+          <div>
+            <strong>No conversion path is promised.</strong>
+            <p>
+              The application does not wrap, swap, bridge, or mint BTC. A native-BTC trove
+              position does not create ERC-20 BTC for exercise. Any conversion would be an
+              external action with its own counterparty and risk.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="vault-explainer">
+        <div class="section-head">
+          <div class="section-copy">
+            <span class="eyebrow">05 · Writer vault</span>
+            <h2>The trove is the writer. The debt is real.</h2>
+            <p>
+              <span class="mono">RosterTroveWriter</span> opens a Mezo trove with native BTC,
+              borrows MUSD, and deposits part of the borrowed MUSD into its bound series.
+              The vault tracks idle MUSD, series reserve, and ERC-20 BTC separately.
+            </p>
+          </div>
+          <a class="btn btn-small btn-ghost" href="./vault.html">Open the vault page <svg class="icon"><use href="#i-arrow-up-right" /></svg></a>
+        </div>
+        <div class="split-section">
+          <div class="check-list">
+            <div class="check-item">
+              <span class="check-mark">01</span>
+              <div>
+                <strong>Collateral is locked.</strong>
+                <p>Native BTC in the trove is not spendable by the series or by position holders.</p>
+              </div>
+            </div>
+            <div class="check-item">
+              <span class="check-mark">02</span>
+              <div>
+                <strong>Debt accrues interest.</strong>
+                <p>The snapshot debt moves over time. Closing the trove requires repaying the full outstanding MUSD debt.</p>
+              </div>
+            </div>
+            <div class="check-item">
+              <span class="check-mark">03</span>
+              <div>
+                <strong>Liquidation is possible.</strong>
+                <p>If BTC falls or debt rises enough, the trove can be liquidated. The application displays the live ratio but cannot prevent it.</p>
+              </div>
+            </div>
+            <div class="check-item">
+              <span class="check-mark">04</span>
+              <div>
+                <strong>The reserve has one job.</strong>
+                <p>MUSD deposited into the series backs strike payouts. It is not a yield product, an insurance fund, or a promise of free collateral.</p>
+              </div>
+            </div>
+          </div>
+          <aside class="panel callout-panel">
+            <span class="micro">WHAT THE VAULT DOES NOT DO</span>
+            <h3>No auto-repayment. No liquidation shield.</h3>
+            <p>
+              Premiums and expiry releases can be forwarded to the owner, but they do not
+              close trove debt unless the owner explicitly repays. The main series expiry is
+              in the future, so finalization and trove closure remain unproven on this deployment.
+            </p>
+            <a class="text-link" href="./activity.html">View the full transaction record <svg class="icon"><use href="#i-arrow-up-right" /></svg></a>
+          </aside>
+        </div>
+      </section>
+
+      <section class="section" id="secondary-explainer">
+        <div class="section-head">
+          <div class="section-copy">
+            <span class="eyebrow">06 · Secondary market</span>
+            <h2>An ask book, not a promise of liquidity.</h2>
+            <p>
+              Sellers escrow position lots at a MUSD price. Buyers fill all remaining lots in
+              one transaction. The book never custodies MUSD and never matches against a bid.
+            </p>
+          </div>
+          <a class="btn btn-small btn-ghost" href="./secondary.html">Open the order book <svg class="icon"><use href="#i-arrow-up-right" /></svg></a>
+        </div>
+        <div class="feature-grid feature-grid-4">
+          <article class="feature-card">
+            <span class="feature-index">ASK ONLY</span>
+            <h3>No synthetic bid.</h3>
+            <p>There is no bid side and no market maker. The best available exit is an actual seller's ask.</p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-index">ESCROWED</span>
+            <h3>Lots leave the wallet.</h3>
+            <p>Listing transfers position tokens into the order book. Escrowed lots cannot be exercised until cancelled.</p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-index">DIRECT</span>
+            <h3>MUSD goes to the seller.</h3>
+            <p>The buyer approves MUSD to the order book; the fill pays the seller directly. Roster takes no fee.</p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-index">FROZEN</span>
+            <h3>Maturity closes the book.</h3>
+            <p>Listings must be cancelled before maturity. Position transfers freeze at expiry, listed or not.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="lifecycle">
+        <div class="section-head">
+          <div class="section-copy">
+            <span class="eyebrow">07 · Lifecycle</span>
+            <h2>From registration to final release.</h2>
+            <p>
+              The live deployment has completed creation, funding, purchase, exercise,
+              listing, fill, and one short-dated expiry demonstration. Main-series expiry,
+              finalization, and trove closure have not happened.
+            </p>
+          </div>
+        </div>
+        <div class="lifecycle">
+          <div class="lifecycle-step is-done">
+            <span class="lifecycle-dot"></span>
+            <div>
+              <span class="micro">STEP 01 · DONE</span>
+              <strong>Series created</strong>
+              <p>Factory registers immutable terms and a writer.</p>
+            </div>
+          </div>
+          <div class="lifecycle-step is-done">
+            <span class="lifecycle-dot"></span>
+            <div>
+              <span class="micro">STEP 02 · DONE</span>
+              <strong>Reserve funded</strong>
+              <p>Writer deposits MUSD; every sold lot reserves its full strike.</p>
+            </div>
+          </div>
+          <div class="lifecycle-step is-done">
+            <span class="lifecycle-dot"></span>
+            <div>
+              <span class="micro">STEP 03 · DONE</span>
+              <strong>Positions purchased</strong>
+              <p>Buyer pays premium and receives position tokens.</p>
+            </div>
+          </div>
+          <div class="lifecycle-step is-done">
+            <span class="lifecycle-dot"></span>
+            <div>
+              <span class="micro">STEP 04 · DONE</span>
+              <strong>Exercise and secondary fill</strong>
+              <p>ERC-20 BTC delivered; MUSD strike paid; an ask filled for MUSD.</p>
+            </div>
+          </div>
+          <div class="lifecycle-step">
+            <span class="lifecycle-dot"></span>
+            <div>
+              <span class="micro">STEP 05 · PENDING</span>
+              <strong>Expiry and finalization</strong>
+              <p>After 24 Nov 2026, expiry releases remaining MUSD to the writer.</p>
+            </div>
+          </div>
+          <div class="lifecycle-step">
+            <span class="lifecycle-dot"></span>
+            <div>
+              <span class="micro">STEP 06 · NOT DONE</span>
+              <strong>Trove closure</strong>
+              <p>Requires repaying full MUSD debt; currently short of the required balance.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="app">
+        <div class="section-head">
+          <div class="section-copy">
+            <span class="eyebrow">08 · The application</span>
+            <h2>Four pages, one on-chain source.</h2>
+            <p>
+              Every page reads the same live contracts. Trade and Secondary can prepare
+              transactions, Vault exposes writer accounting, and Activity decodes the public
+              event record. Nothing is simulated in the interface.
+            </p>
+          </div>
+        </div>
+        <div class="page-card-grid">
+          <a class="page-card" href="./trade.html">
+            <span class="icon-box"><svg class="icon"><use href="#i-spark" /></svg></span>
+            <span class="page-card-index">01</span>
+            <h3>Trade</h3>
+            <p>Buy position lots, inspect any address, and exercise before maturity.</p>
+            <span class="page-card-link">Primary market <svg class="icon"><use href="#i-arrow-up-right" /></svg></span>
+          </a>
+          <a class="page-card" href="./secondary.html">
+            <span class="icon-box"><svg class="icon"><use href="#i-layers" /></svg></span>
+            <span class="page-card-index">02</span>
+            <h3>Secondary</h3>
+            <p>List lots at your ask, fill a seller's listing, or cancel an open position.</p>
+            <span class="page-card-link">Ask book <svg class="icon"><use href="#i-arrow-up-right" /></svg></span>
+          </a>
+          <a class="page-card" href="./vault.html">
+            <span class="icon-box"><svg class="icon"><use href="#i-shield" /></svg></span>
+            <span class="page-card-index">03</span>
+            <h3>Vault</h3>
+            <p>Read trove health, separated balances, premium forwarding, and owner controls.</p>
+            <span class="page-card-link">Writer accounting <svg class="icon"><use href="#i-arrow-up-right" /></svg></span>
+          </a>
+          <a class="page-card" href="./activity.html">
+            <span class="icon-box"><svg class="icon"><use href="#i-pulse" /></svg></span>
+            <span class="page-card-index">04</span>
+            <h3>Activity</h3>
+            <p>Decode every event, verify every address, and open each transaction in the explorer.</p>
+            <span class="page-card-link">On-chain record <svg class="icon"><use href="#i-arrow-up-right" /></svg></span>
+          </a>
+        </div>
+      </section>
+
+      <section class="section" id="verify">
+        <div class="section-head">
+          <div class="section-copy">
+            <span class="eyebrow">09 · Verification</span>
+            <h2>Read it from the chain.</h2>
+            <p>
+              The app is a reader and transaction builder, not a source of truth. The README
+              and the explorer are the canonical records. The deployment uses Mezo testnet,
+              chain ID 31611.
+            </p>
+          </div>
+          <a class="btn btn-small btn-ghost" href="./activity.html">Open contract directory <svg class="icon"><use href="#i-arrow-up-right" /></svg></a>
+        </div>
+        <div class="verify-grid">
+          <div class="verify-card">
+            <span class="micro">SERIES FACTORY</span>
+            <strong class="mono">0xEeCCD2bb…Da580D2F</strong>
+            <span>Permissionless registry</span>
+          </div>
+          <div class="verify-card">
+            <span class="micro">ORDER BOOK</span>
+            <strong class="mono">0xc97B2fe5…6149cd25</strong>
+            <span>Escrowed asks</span>
+          </div>
+          <div class="verify-card">
+            <span class="micro">WRITER VAULT</span>
+            <strong class="mono">0x214e2316…544DA331</strong>
+            <span>Trove-backed writer</span>
+          </div>
+          <div class="verify-card">
+            <span class="micro">MAIN SERIES</span>
+            <strong class="mono">0xC2316786…FD895b92</strong>
+            <span>Active until 24 Nov 2026</span>
+          </div>
+        </div>
+        <div class="callout">
+          <svg class="icon"><use href="#i-check" /></svg>
+          <div>
+            <strong>What has actually been demonstrated.</strong>
+            <p>
+              A live deployment, real purchases, an exercise, a secondary fill, a short-dated
+              expiry, and an 82-test contract suite. No browser wallet transaction, audit,
+              organic demand, main-series expiry, or trove closure is claimed. The generated
+              demo buyer is not evidence of market demand.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="disclosure" aria-label="Risk disclosures">
+        <div class="disclosure-item">
+          <span class="disclosure-index">01</span>
+          <div>
+            <strong>Testnet prototype, not audited.</strong>
+            <p>No audit or independent security review has been completed. Do not use with real funds.</p>
+          </div>
+        </div>
+        <div class="disclosure-item">
+          <span class="disclosure-index">02</span>
+          <div>
+            <strong>Two different BTC assets.</strong>
+            <p>Native BTC trove collateral and the ERC-20 BTC used for exercise are separate. Roster does not convert between them.</p>
+          </div>
+        </div>
+        <div class="disclosure-item">
+          <span class="disclosure-index">03</span>
+          <div>
+            <strong>Trove debt is an obligation.</strong>
+            <p>Interest accrues and liquidation is possible. Series collateral does not repay the trove automatically.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-brand">
+        <span class="brand-mark small" aria-hidden="true"><span></span><span></span><span></span></span>
+        <div>
+          <strong>Roster</strong>
+          <span>Fixed-series BTC puts on Mezo.</span>
+        </div>
+      </div>
+      <div class="footer-links">
+        <a href="./trade.html">Trade</a>
+        <a href="./secondary.html">Secondary</a>
+        <a href="./vault.html">Vault</a>
+        <a href="./activity.html">Activity</a>
+        <a href="https://mezo.org" target="_blank" rel="noreferrer">Mezo <svg class="icon"><use href="#i-external" /></svg></a>
+        <a href="https://explorer.test.mezo.org" target="_blank" rel="noreferrer">Explorer <svg class="icon"><use href="#i-external" /></svg></a>
+        <span>Built for Mezo Wave 1 · 2026</span>
+      </div>
+    </footer>
+
+    <div class="toast-stack" id="toastStack" aria-live="polite"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

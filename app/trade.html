@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0a0c0b" />
+    <meta
+      name="description"
+      content="Trade Roster series: buy fixed-strike BTC put lots, inspect positions for any address, and exercise before maturity on Mezo testnet."
+    />
+    <title>Trade — Roster</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23ff6b35'/%3E%3Cpath d='M9 9h9a5 5 0 0 1 0 10h-5v4H9V9Z' fill='%230a0c0b'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body data-page="trade">
+    <svg class="svg-sprite" aria-hidden="true">
+      <symbol id="i-arrow-up-right" viewBox="0 0 24 24"><path d="M7 17 17 7M8 7h9v9" /></symbol>
+      <symbol id="i-arrow-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 5 5L20 7" /></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24">
+        <rect x="9" y="9" width="11" height="11" rx="2" />
+        <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+      </symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24">
+        <rect x="4" y="10" width="16" height="10" rx="2" />
+        <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+      </symbol>
+      <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M3 12h4l2-6 4 12 2-6h6" /></symbol>
+      <symbol id="i-layers" viewBox="0 0 24 24">
+        <path d="m12 3 9 5-9 5-9-5 9-5Z" /><path d="m3 13 9 5 9-5" /><path d="m3 18 9 5 9-5" />
+      </symbol>
+      <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6l-8-3Z" /></symbol>
+      <symbol id="i-wallet" viewBox="0 0 24 24">
+        <rect x="3" y="6" width="18" height="13" rx="3" /><path d="M3 9h18" /><path d="M16 14h2" />
+      </symbol>
+      <symbol id="i-external" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4 10 14" /><path d="M20 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4" /></symbol>
+      <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 2v5M12 17v5M2 12h5M17 12h5M5 5l3.5 3.5M15.5 15.5 19 19M19 5l-3.5 3.5M8.5 15.5 5 19" /></symbol>
+    </svg>
+
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+
+    <header class="site-header">
+      <a class="brand" href="./index.html" aria-label="Roster home">
+        <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
+        <span class="brand-word">Roster</span>
+      </a>
+      <nav class="site-nav" aria-label="Primary">
+        <a href="./trade.html" class="is-active" aria-current="page">Trade</a>
+        <a href="./secondary.html">Secondary</a>
+        <a href="./vault.html">Vault</a>
+        <a href="./activity.html">Activity</a>
+      </nav>
+      <div class="header-actions">
+        <span class="network-pill"><span class="live-dot"></span> Mezo Testnet</span>
+        <button class="btn btn-small btn-ghost" id="connectBtn" type="button">
+          <svg class="icon"><use href="#i-wallet" /></svg>
+          <span id="connectLabel">Connect wallet</span>
+        </button>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="page-hero">
+        <div class="page-hero-copy">
+          <div class="eyebrow"><span class="live-dot"></span> 01 · Primary market</div>
+          <h1>Buy the floor.</h1>
+          <p class="lede">
+            Pay a fixed MUSD premium for position lots. Before maturity, deliver ERC-20 BTC
+            to the writer and receive the exact strike in MUSD. Exercise is manual; the
+            series does not auto-exercise at expiry.
+          </p>
+          <div class="page-actions">
+            <a class="btn btn-primary" href="#buy">Buy position <svg class="icon"><use href="#i-arrow-down" /></svg></a>
+            <a class="btn btn-ghost" href="./secondary.html">Secondary exits <svg class="icon"><use href="#i-arrow-up-right" /></svg></a>
+          </div>
+          <div class="page-meta">
+            <span><svg class="icon"><use href="#i-lock" /></svg> Fixed strike</span>
+            <span><svg class="icon"><use href="#i-clock" /></svg> Manual exercise</span>
+            <span><svg class="icon"><use href="#i-shield" /></svg> MUSD reserve</span>
+          </div>
+        </div>
+
+        <aside class="ticket" aria-label="Selected series ticket">
+          <div class="ticket-top">
+            <span class="status-chip" id="ticketStatus"><span class="live-dot"></span> Active</span>
+            <span class="ticket-symbol" id="ticketSymbol">rBTC-PUT-T</span>
+          </div>
+          <div class="ticket-strike">
+            <span class="micro">STRIKE</span>
+            <div class="ticket-big"><span id="ticketStrike">$80,000</span><span class="ticket-per">/ BTC</span></div>
+          </div>
+          <div class="ticket-divider"></div>
+          <div class="ticket-grid">
+            <div>
+              <span class="micro">PREMIUM</span>
+              <strong id="ticketPremium">0.001 MUSD</strong>
+              <span class="micro-sub">per lot</span>
+            </div>
+            <div>
+              <span class="micro">EXPIRY</span>
+              <strong id="ticketExpiry">24 Nov 2026</strong>
+              <span class="micro-sub" id="ticketCountdown">—</span>
+            </div>
+            <div>
+              <span class="micro">BTC SPOT</span>
+              <strong id="ticketSpot">—</strong>
+              <span class="micro-sub">Mezo PriceFeed</span>
+            </div>
+            <div>
+              <span class="micro">ACTIVE LOTS</span>
+              <strong id="ticketLots">—</strong>
+              <span class="micro-sub" id="ticketCapacity">—</span>
+            </div>
+          </div>
+          <div class="ticket-meter"><span id="ticketMeter"></span></div>
+          <div class="ticket-foot">
+            <span>Writer</span>
+            <a id="ticketWriter" class="mono" target="_blank" rel="noreferrer">—</a>
+            <span class="mini-chip" id="ticketWriterType">Trove-backed</span>
+          </div>
+          <span class="ticket-notch ticket-notch-left"></span>
+          <span class="ticket-notch ticket-notch-right"></span>
+        </aside>
+      </section>
+
+      <section class="section" id="trade">
+        <div class="section-head">
+          <div class="section-copy">
+            <span class="eyebrow">Selected series</span>
+            <h2>Primary market.</h2>
+            <p>
+              Pick a series, enter a whole number of lots, and review the exact premium and
+              strike payout before submitting. The writer cannot buy or exercise its own series.
+            </p>
+          </div>
+          <div class="series-switcher" id="seriesTabs" aria-label="Series selector"></div>
+        </div>
+
+        <div class="trade-grid">
+          <article class="panel panel-accent" id="buy">
+            <div class="panel-head">
+              <div class="panel-title">
+                <span class="icon-box"><svg class="icon"><use href="#i-spark" /></svg></span>
+                <div>
+                  <h3>Buy position</h3>
+                  <p id="buySeriesName">—</p>
+                </div>
+              </div>
+              <span class="chip chip-soft" id="buyStatusChip">Active</span>
+            </div>
+
+            <div class="field">
+              <div class="field-label">
+                <label for="buyLots">Lots</label>
+                <span>1 lot = 0.000001 BTC</span>
+              </div>
+              <div class="input-wrap">
+                <input id="buyLots" type="number" min="1" step="1" placeholder="0" inputmode="numeric" />
+                <span class="input-suffix">LOTS</span>
+                <button class="max-btn" id="buyMax" type="button">MAX</button>
+              </div>
+              <div class="quick-row">
+                <button type="button" data-lots="10">10</button>
+                <button type="button" data-lots="25">25</button>
+                <button type="button" data-lots="50">50</button>
+                <button type="button" data-lots="100">100</button>
+              </div>
+            </div>
+
+            <div class="quote">
+              <div><span>Premium due</span><strong id="buyPremium">— MUSD</strong></div>
+              <div><span>Strike payout if exercised</span><strong id="buyPayout">— MUSD</strong></div>
+              <div><span>ERC-20 BTC delivered</span><strong id="buyBtc">— BTC</strong></div>
+              <div><span>Series capacity left</span><strong id="buyCapacity">— lots</strong></div>
+            </div>
+
+            <div class="balance-line">
+              <span><svg class="icon"><use href="#i-wallet" /></svg> Wallet MUSD</span>
+              <span id="buyWalletMusd">Not connected</span>
+            </div>
+
+            <button class="btn btn-primary btn-block" id="buyBtn" type="button">Connect wallet to buy</button>
+            <p class="fineprint">
+              Premium is non-refundable. Exercise is manual and must happen before maturity.
+              Position transfers freeze at expiry.
+            </p>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <div class="panel-title">
+                <span class="icon-box"><svg class="icon"><use href="#i-shield" /></svg></span>
+                <div>
+                  <h3>Your position</h3>
+                  <p>Read positions for any address</p>
+                </div>
+              </div>
+              <span class="chip chip-soft" id="positionAddressChip">No address</span>
+            </div>
+
+            <div class="watch-row">
+              <input id="watchAddress" placeholder="Watch any address (0x…)" spellcheck="false" />
+              <button class="btn btn-small btn-ghost" id="watchBtn" type="button">Load</button>
+            </div>
+
+            <div class="position-hero">
+              <span class="micro">POSITION</span>
+              <div class="position-number"><strong id="posLots">0</strong><span> lots</span></div>
+              <span class="position-notional" id="posNotional">0.000000 BTC notional</span>
+            </div>
+
+            <div class="mini-grid">
+              <div><span>MUSD balance</span><strong id="posMusd">—</strong></div>
+              <div><span>ERC-20 BTC balance</span><strong id="posBtc">—</strong></div>
+              <div><span>Value at strike</span><strong id="posValue">—</strong></div>
+              <div><span>BTC to exercise all</span><strong id="posBtcNeed">—</strong></div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="subhead">
+              <h4>Exercise</h4>
+              <span class="chip chip-soft" id="exerciseChip">Manual</span>
+            </div>
+            <div class="inline-field">
+              <input id="exerciseLots" type="number" min="1" step="1" placeholder="Lots to exercise" />
+              <button class="max-btn" id="exerciseMax" type="button">MAX</button>
+            </div>
+            <div class="quote quote-compact">
+              <div><span>You deliver</span><strong id="exerciseBtc">— BTC</strong></div>
+              <div><span>You receive</span><strong id="exerciseMusd">— MUSD</strong></div>
+            </div>
+            <button class="btn btn-secondary btn-block" id="exerciseBtn" type="button">Connect wallet to exercise</button>
+            <p class="fineprint">
+              Exercise requires ERC-20 BTC and an approval. The writer receives the BTC;
+              the series pays the exact strike in MUSD. Native BTC cannot be used here.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section" id="trade-terms">
+        <div class="section-head">
+          <div class="section-copy">
+            <span class="eyebrow">Series facts</span>
+            <h2>What is fixed, and what moves.</h2>
+            <p>
+              The strike, premium, lot size, expiry, writer, and settlement assets are fixed at
+              deployment. Collateral, active lots, and capacity move with purchases, exercises,
+              and premium withdrawals.
+            </p>
+          </div>
+        </div>
+        <div class="terms-layout">
+          <article class="terms-panel compact-terms">
+            <div class="term-row"><span>Series</span><strong id="tradeSeriesName">—</strong></div>
+            <div class="term-row"><span>Status</span><strong id="tradeStatus">—</strong></div>
+            <div class="term-row"><span>Strike</span><strong id="tradeStrike">—</strong></div>
+            <div class="term-row"><span>Premium per lot</span><strong id="tradePremium">—</strong></div>
+            <div class="term-row"><span>Lot size</span><strong id="tradeLotSize">—</strong></div>
+            <div class="term-row"><span>Expiry</span><strong id="tradeExpiry">—</strong></div>
+            <div class="term-row"><span>Time remaining</span><strong id="tradeCountdown">—</strong></div>
+            <div class="term-row"><span>Collateral</span><strong id="tradeCollateral">—</strong></div>
+            <div class="term-row"><span>Reserved / active</span><strong id="tradeReserved">—</strong></div>
+            <div class="term-row"><span>Capacity</span><strong id="tradeCapacity">—</strong></div>
+          </article>
+          <aside class="panel payoff-panel">
+            <span class="micro">PAYOFF PER LOT · BEFORE GAS</span>
+            <h3>One lot, three prices.</h3>
+            <div class="payoff-row">
+              <span>BTC at $60,000</span>
+              <strong>0.06 MUSD → 0.08 MUSD</strong>
+              <p>Exercise: deliver 0.000001 BTC, receive 0.08 MUSD. Gross gain 0.02 MUSD.</p>
+            </div>
+            <div class="payoff-row">
+              <span>BTC at $80,000</span>
+              <strong>0.08 MUSD → 0.08 MUSD</strong>
+              <p>Exercise breaks even before the 0.001 MUSD premium and gas.</p>
+            </div>
+            <div class="payoff-row">
+              <span>BTC above $80,000</span>
+              <strong>Do not exercise</strong>
+              <p>Let the position expire worthless. The loss is the premium paid.</p>
+            </div>
+            <p class="fineprint">
+              Illustration assumes ERC-20 BTC trades at the Mezo spot price and ignores
+              transaction costs. The contract itself has no settlement oracle and no
+              auto-exercise.
+            </p>
+          </aside>
+        </div>
+      </section>
+
+      <section class="disclosure" aria-label="Risk disclosures">
+        <div class="disclosure-item">
+          <span class="disclosure-index">01</span>
+          <div>
+            <strong>Exercise is manual.</strong>
+            <p>If you do nothing before expiry, the position expires worthless. No keeper will exercise for you.</p>
+          </div>
+        </div>
+        <div class="disclosure-item">
+          <span class="disclosure-index">02</span>
+          <div>
+            <strong>ERC-20 BTC is required.</strong>
+            <p>The exercise asset is separate from native BTC trove collateral. Roster does not convert between them.</p>
+          </div>
+        </div>
+        <div class="disclosure-item">
+          <span class="disclosure-index">03</span>
+          <div>
+            <strong>Premium is non-refundable.</strong>
+            <p>A position can expire out of the money. Buying a put is not a guaranteed hedge or a principal-protected product.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-brand">
+        <span class="brand-mark small" aria-hidden="true"><span></span><span></span><span></span></span>
+        <div>
+          <strong>Roster</strong>
+          <span>Fixed-series BTC puts on Mezo.</span>
+        </div>
+      </div>
+      <div class="footer-links">
+        <a href="./trade.html">Trade</a>
+        <a href="./secondary.html">Secondary</a>
+        <a href="./vault.html">Vault</a>
+        <a href="./activity.html">Activity</a>
+        <a href="https://mezo.org" target="_blank" rel="noreferrer">Mezo <svg class="icon"><use href="#i-external" /></svg></a>
+        <a href="https://explorer.test.mezo.org" target="_blank" rel="noreferrer">Explorer <svg class="icon"><use href="#i-external" /></svg></a>
+        <span>Built for Mezo Wave 1 · 2026</span>
+      </div>
+    </footer>
+
+    <div class="toast-stack" id="toastStack" aria-live="polite"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

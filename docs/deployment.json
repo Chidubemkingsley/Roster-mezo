@@ -1,0 +1,404 @@
+{
+  "project": "Roster Finance",
+  "network": {
+    "name": "Mezo Testnet",
+    "chainId": 31611,
+    "chainIdHex": "0x7b7b",
+    "rpc": "https://rpc.test.mezo.org",
+    "explorer": "https://explorer.test.mezo.org"
+  },
+  "snapshot": {
+    "blockNumber": 16359943,
+    "timestamp": 1792930266,
+    "utc": "2026-10-25T12:11:06Z",
+    "note": "Debt, interest, ICR, and balances move. These are snapshot values."
+  },
+  "status": {
+    "deployment": "live-testnet",
+    "audited": false,
+    "mainSeriesExpired": false,
+    "mainSeriesFinalized": false,
+    "troveClosed": false,
+    "organicDemand": false,
+    "premiumDiscovery": false,
+    "mezoTokenIntegrated": false,
+    "appBuild": "pass",
+    "appReadOnlyBrowserPass": true,
+    "appWalletTransaction": false,
+    "appAutomatedE2e": false,
+    "appHosted": false,
+    "mainnet": false
+  },
+  "accounts": {
+    "deployer": "0x90356CF97B3BF1749A604d3F89b3DF3602A459E3",
+    "demoBuyer": "0x1A1A70AF037123dda8A1B49BA245234f318Dd3b5"
+  },
+  "contracts": {
+    "factory": {
+      "name": "RosterSeriesFactory",
+      "address": "0xEeCCD2bb5c0605F3eaCDC4dA221D9bdeDa580D2F",
+      "deployTx": "0x7820fd49212c721e3671a63f9a28e9c47b6056dbf15cd0dec9d0ec2beeab2c76",
+      "block": 16359308,
+      "gasUsed": 2500000,
+      "codePresent": true
+    },
+    "orderBook": {
+      "name": "RosterOrderBook",
+      "address": "0xc97B2fe5ba7e68ed7b52a657a137Cf636149cd25",
+      "deployTx": "0xe99ced935a65633f7ecfeb6f789dd0cba5b278da59b81192d6d40783675f906f",
+      "block": 16359315,
+      "gasUsed": 2500000,
+      "codePresent": true
+    },
+    "vault": {
+      "name": "RosterTroveWriter",
+      "address": "0x214e2316EAEeE24c1dc5d8433329fFC7544DA331",
+      "deployTx": "0x6266c2c646f0d2cbabe48fba10afa528787f9f159814aea2567170176739b027",
+      "block": 16359322,
+      "gasUsed": 2500000,
+      "codePresent": true
+    },
+    "mainSeries": {
+      "name": "RosterBtcPutSeries",
+      "address": "0xC23167867baAF830D586598DE0634E26fD895b92",
+      "deployTx": "0xf93e75fbcf23a7805ad8d7bb7ff657d8b3fcdbb2133b4e47cea40cec5abe409b",
+      "block": 16359328,
+      "gasUsed": 5000000,
+      "codePresent": true
+    },
+    "demoSeries": {
+      "name": "RosterBtcPutSeries",
+      "address": "0xCC6bEA372b4947D31303FAb5d13C2f984d68FA43",
+      "deployTx": "0xa7ff146b3ce49b46a8de4582c3826b320797b28d1e70fff7669530b4a10cabae",
+      "block": 16359511,
+      "gasUsed": 2500000,
+      "codePresent": true
+    }
+  },
+  "assets": {
+    "musd": {
+      "address": "0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503",
+      "decimals": 18
+    },
+    "erc20Btc": {
+      "address": "0x7b7C000000000000000000000000000000000000",
+      "decimals": 18,
+      "note": "Mezo-side BTC interface; separate from native BTC; not shown to be convertible through Roster"
+    }
+  },
+  "mezoProtocol": {
+    "borrowerOperations": "0xCdF7028ceAB81fA0C6971208e83fa7872994beE5",
+    "troveManager": "0xE47c80e8c23f6B4A1aE41c34837a0599D5D16bb0",
+    "priceFeed": "0x86bCF0841622a5dAC14A313a15f96A95421b9366",
+    "activePool": "0x143A063F62340DA3A8bEA1C5642d18C6D0F7FF51",
+    "collSurplusPool": "0xB4C35747c26E4aB5F1a7CdC7E875B5946eFa6fa9",
+    "musdGasCompensation": "200000000000000000000",
+    "liquidationMcr": "1100000000000000000"
+  },
+  "mainSeries": {
+    "address": "0xC23167867baAF830D586598DE0634E26fD895b92",
+    "writer": "0x214e2316EAEeE24c1dc5d8433329fFC7544DA331",
+    "name": "Roster Mezo BTC Put (Trove)",
+    "symbol": "rBTC-PUT-T",
+    "musd": "0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503",
+    "btc": "0x7b7C000000000000000000000000000000000000",
+    "K_raw": "80000000000000000000000",
+    "strikePerLotRaw": "80000000000000000",
+    "premiumPerLotRaw": "1000000000000000",
+    "lotSizeRaw": "1000000000000",
+    "expiry": 1795519026,
+    "expiryUtc": "2026-11-24T11:17:06Z",
+    "positionDecimals": 0,
+    "activeLots": 75,
+    "totalSupply": 75,
+    "collateralBalanceRaw": "1498000000000000000000",
+    "reservedRaw": "6000000000000000000",
+    "excessRaw": "1492000000000000000000",
+    "totalDepositedRaw": "1500000000000000000000",
+    "totalPayoutsRaw": "2000000000000000000",
+    "expiryReleaseRaw": "0",
+    "premiumBalanceRaw": "0",
+    "expired": false,
+    "positions": {
+      "buyer": 25,
+      "deployer": 25,
+      "orderBookEscrow": 25
+    }
+  },
+  "demoSeries": {
+    "address": "0xCC6bEA372b4947D31303FAb5d13C2f984d68FA43",
+    "writer": "0x90356CF97B3BF1749A604d3F89b3DF3602A459E3",
+    "name": "Roster Expiry Demo",
+    "symbol": "rDEMO-EXP",
+    "expiry": 1792929664,
+    "expiryUtc": "2026-10-25T12:01:04Z",
+    "activeLots": 0,
+    "totalSupply": 10,
+    "collateralBalanceRaw": "0",
+    "reservedRaw": "0",
+    "excessRaw": "0",
+    "expiryReleaseRaw": "20000000000000000000",
+    "premiumBalanceRaw": "10000000000000000",
+    "expired": true,
+    "note": "EOA-writer expiry demonstration; does not prove vault finalize()"
+  },
+  "vault": {
+    "address": "0x214e2316EAEeE24c1dc5d8433329fFC7544DA331",
+    "owner": "0x90356CF97B3BF1749A604d3F89b3DF3602A459E3",
+    "series": "0xC23167867baAF830D586598DE0634E26fD895b92",
+    "seriesBound": true,
+    "musdBalanceRaw": "400000000000000000000",
+    "idleMusdRaw": "400000000000000000000",
+    "reservedMusdRaw": "0",
+    "erc20BtcBalanceRaw": "25000000000000",
+    "premiumForwardedRaw": "100000000000000000",
+    "expiryForwardedRaw": "0",
+    "totalDepositedToSeriesRaw": "1500000000000000000000",
+    "minIcrRaw": "1500000000000000000"
+  },
+  "trove": {
+    "collateralNativeBtcRaw": "43000000000000000",
+    "debtRaw": "2202001777260997830208",
+    "icrRaw": "1569883623935996387",
+    "priceRaw": "80392710000000000000000",
+    "status": 1,
+    "requestedBorrowRaw": "2000000000000000000000",
+    "borrowingFeeRaw": "2000000000000000000",
+    "gasCompensationRaw": "200000000000000000000",
+    "initialDebtRaw": "2202000000000000000000"
+  },
+  "troveClose": {
+    "requiredRaw": "2002001777260997830208",
+    "vaultIdleRaw": "400000000000000000000",
+    "ownerMusdRaw": "50050000000000000000",
+    "availableRaw": "450050000000000000000",
+    "shortfallRaw": "1551951777260997830208",
+    "possible": false,
+    "note": "Series reserve is not available while the series is live; no DEX route found"
+  },
+  "orderBook": {
+    "address": "0xc97B2fe5ba7e68ed7b52a657a137Cf636149cd25",
+    "nextListingId": 2,
+    "listingCount": 1,
+    "listings": [
+      {
+        "id": 1,
+        "seller": "0x1A1A70AF037123dda8A1B49BA245234f318Dd3b5",
+        "series": "0xC23167867baAF830D586598DE0634E26fD895b92",
+        "pricePerLotRaw": "2000000000000000",
+        "remaining": 25,
+        "active": true
+      }
+    ]
+  },
+  "balances": {
+    "deployer": {
+      "musdRaw": "50050000000000000000",
+      "erc20BtcRaw": "4999993948523024"
+    },
+    "buyer": {
+      "musdRaw": "51940000000000000000",
+      "erc20BtcRaw": "1974999257200000"
+    }
+  },
+  "transactions": [
+    {
+      "step": "Deploy factory",
+      "hash": "0x7820fd49212c721e3671a63f9a28e9c47b6056dbf15cd0dec9d0ec2beeab2c76",
+      "block": 16359308,
+      "status": 1
+    },
+    {
+      "step": "Deploy order book",
+      "hash": "0xe99ced935a65633f7ecfeb6f789dd0cba5b278da59b81192d6d40783675f906f",
+      "block": 16359315,
+      "status": 1
+    },
+    {
+      "step": "Deploy vault",
+      "hash": "0x6266c2c646f0d2cbabe48fba10afa528787f9f159814aea2567170176739b027",
+      "block": 16359322,
+      "status": 1
+    },
+    {
+      "step": "Create main series",
+      "hash": "0xf93e75fbcf23a7805ad8d7bb7ff657d8b3fcdbb2133b4e47cea40cec5abe409b",
+      "block": 16359328,
+      "status": 1
+    },
+    {
+      "step": "Bind vault to main series",
+      "hash": "0x475ac4a22814c979e736d56644e74e51c26028c0a76edc24a7a6596461162929",
+      "block": 16359339,
+      "status": 1
+    },
+    {
+      "step": "Open trove and fund series",
+      "hash": "0xf77a65faa269621d3b0c7c5f0f3bf2aba02da742c0f7448e9bfb89cef6d74cb3",
+      "block": 16359352,
+      "status": 1
+    },
+    {
+      "step": "Withdraw 100 idle MUSD",
+      "hash": "0x42382fc32c88c42c7f16d8039f8bd7ea677d9575492ea1dc26d9b98fa3e122b1",
+      "block": 16359394,
+      "status": 1
+    },
+    {
+      "step": "Fund buyer 50 MUSD",
+      "hash": "0xfcdedbe4097ef8c5b874ec18535cca1fae9846b5c75419a3a84d0fbbf82c3e8c",
+      "block": 16359397,
+      "status": 1
+    },
+    {
+      "step": "Fund buyer 0.001 ERC-20 BTC",
+      "hash": "0x7955e79d23d2490e008a4ef92dcf95cdc4db63b8780bc987c3dd62f470f9e54a",
+      "block": 16359411,
+      "status": 1
+    },
+    {
+      "step": "Buyer approves MUSD",
+      "hash": "0x21a70bfcc088cfbae46bba0e1856b28527f7a8e044fb8c78223562e27f229a63",
+      "block": 16359416,
+      "status": 1
+    },
+    {
+      "step": "Buyer purchases 100 lots",
+      "hash": "0xe267876b92c517fd0f12f52b8f3935f683bdca6eda8b832c1837bc11e14c7186",
+      "block": 16359419,
+      "status": 1
+    },
+    {
+      "step": "Buyer approves position tokens",
+      "hash": "0x49fd70c707bfc9590cb0afb4d4665b4677b3f2ee5b99b7bad1f1889f5d20a169",
+      "block": 16359426,
+      "status": 1
+    },
+    {
+      "step": "Buyer lists 50 lots",
+      "hash": "0x4c28017a4ca2f99c261b54ad30ecd4e21382b1e931eaae092fa76eda7ff3752e",
+      "block": 16359433,
+      "status": 1
+    },
+    {
+      "step": "Deployer fills 25 lots",
+      "hash": "0xd02d308ffd79ae818b78d88563189ffd9a3f88b72a13b0f93a73a4e1e5a2894e",
+      "block": 16359445,
+      "status": 1
+    },
+    {
+      "step": "Buyer exercises 25 lots",
+      "hash": "0x4230a5c81c8e351634306885098e5ad3765b27564c3d6ff08462815ce36f4991",
+      "block": 16359457,
+      "status": 1
+    },
+    {
+      "step": "Vault withdraws premium",
+      "hash": "0x5f82341945dba350e179211cabb5031228844eebfb328acb9112bee715ce8a50",
+      "block": 16359469,
+      "status": 1
+    },
+    {
+      "step": "Create demo series",
+      "hash": "0xa7ff146b3ce49b46a8de4582c3826b320797b28d1e70fff7669530b4a10cabae",
+      "block": 16359511,
+      "status": 1
+    },
+    {
+      "step": "Approve 20 MUSD to demo",
+      "hash": "0x4280f849273e419d07533f3d205047f264422805b0f511e7289e883eb464f0c4",
+      "block": 16359517,
+      "status": 1
+    },
+    {
+      "step": "Deposit 20 MUSD to demo",
+      "hash": "0x89c016b7f19d87e89dba2ae8c3ecc4a5081b15a87d5ea681a5e328bea4275946",
+      "block": 16359519,
+      "status": 1
+    },
+    {
+      "step": "Buyer approves 0.01 MUSD",
+      "hash": "0x5f52c73be0789064f6894bbbcea0d18df19113c77e665ba84141880a62487aa9",
+      "block": 16359524,
+      "status": 1
+    },
+    {
+      "step": "Buyer purchases 10 demo lots",
+      "hash": "0xafa7a0e6227dd3d2d5eca8cd16e072a9443331a8d5f86cdc4480b568c6ba3815",
+      "block": 16359527,
+      "status": 1
+    },
+    {
+      "step": "Demo expire",
+      "hash": "0xdc1b099d2f1a6256de62fdb28698167728416a9fb9df895ac19062d81eb5dd8d",
+      "block": 16359832,
+      "status": 1
+    }
+  ],
+  "tests": {
+    "format": "pass",
+    "build": "pass-with-lint-warnings",
+    "default": "82/82",
+    "ci": "82/82",
+    "audit": false
+  },
+  "app": {
+    "path": "app",
+    "framework": "vite + ethers",
+    "pages": [
+      "index.html",
+      "trade.html",
+      "secondary.html",
+      "vault.html",
+      "activity.html"
+    ],
+    "productionBuild": "pass",
+    "build": {
+      "indexHtml": "32.68 kB (gzip 7.39 kB)",
+      "tradeHtml": "16.77 kB (gzip 4.29 kB)",
+      "secondaryHtml": "14.60 kB (gzip 4.02 kB)",
+      "vaultHtml": "18.71 kB (gzip 4.79 kB)",
+      "activityHtml": "11.72 kB (gzip 3.41 kB)",
+      "css": "assets/main-uU5dssex.css — 42.88 kB (gzip 8.54 kB)",
+      "js": "assets/main-3VKCUrVU.js — 303.59 kB (gzip 109.60 kB)"
+    },
+    "browserCheck": {
+      "mode": "read-only",
+      "at": "2026-10-26T01:25:00Z",
+      "blockNumber": 16371423,
+      "browser": "headless Chrome",
+      "walletConnected": false,
+      "transactionSent": false,
+      "pagesLoaded": 5,
+      "uncaughtExceptions": false,
+      "desktopWidth": 1440,
+      "mobileWidth": 390,
+      "horizontalOverflow": false,
+      "activityEvents": 13,
+      "contractCards": 8,
+      "tradeQuote100Lots": {
+        "premiumRaw": "100000000000000000",
+        "payoutRaw": "8000000000000000000",
+        "btcRaw": "100000000000000",
+        "buyEnabled": true
+      },
+      "vaultShortfallApproxMusd": "1551.985"
+    },
+    "screenshots": [
+      "docs/screenshots/home-desktop.png",
+      "docs/screenshots/home-full.png",
+      "docs/screenshots/trade-desktop.png",
+      "docs/screenshots/secondary-desktop.png",
+      "docs/screenshots/vault-desktop.png",
+      "docs/screenshots/activity-desktop.png",
+      "docs/screenshots/home-mobile.png",
+      "docs/screenshots/trade-mobile.png",
+      "docs/screenshots/secondary-mobile.png",
+      "docs/screenshots/vault-mobile.png",
+      "docs/screenshots/activity-mobile.png"
+    ],
+    "walletTransaction": false,
+    "automatedE2e": false,
+    "hosted": false
+  }
+}
