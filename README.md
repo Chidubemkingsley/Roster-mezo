@@ -846,7 +846,8 @@ describe it as a finished or fully validated end-user product.
 │   ├── RosterSeriesFactory.sol    # permissionless series registry
 │   ├── RosterOrderBook.sol        # secondary escrowed asks
 │   ├── RosterTroveWriter.sol      # per-series Mezo trove vault
-│   └── MockERC20.sol              # local exact-transfer / callback token
+│   ├── MockERC20.sol              # local exact-transfer test token
+│   └── TestERC20Helpers.sol       # adversarial callback / fee-on-transfer tokens
 ├── test/
 │   ├── RosterBtcPutSeries.t.sol   # 36 core unit tests
 │   ├── ProtocolExtensions.t.sol   # 40 factory/book/vault tests

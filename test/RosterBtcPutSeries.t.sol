@@ -3,7 +3,8 @@ pragma solidity ^0.8.24;
 
 import {TestBase} from "./TestBase.sol";
 import {RosterBtcPutSeries} from "../src/RosterBtcPutSeries.sol";
-import {MockERC20, CallbackERC20, FeeOnTransferERC20} from "../src/MockERC20.sol";
+import {MockERC20} from "../src/MockERC20.sol";
+import {CallbackERC20, FeeOnTransferERC20} from "../src/TestERC20Helpers.sol";
 
 contract RosterBtcPutSeriesTest is TestBase {
     function test_deposit_writer_only() public {

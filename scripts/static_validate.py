@@ -12,6 +12,7 @@ errors: list[str] = []
 required_files = [
     "src/RosterBtcPutSeries.sol",
     "src/MockERC20.sol",
+    "src/TestERC20Helpers.sol",
     "test/TestBase.sol",
     "test/RosterBtcPutSeries.t.sol",
     "test/SeriesInvariant.t.sol",
