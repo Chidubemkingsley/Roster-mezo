@@ -693,8 +693,9 @@ caps `eth_getLogs` at 10,000 blocks, so the activity feed scans in 9,000-block w
 The app does **not** currently surface the position wrapper or the Mezo Pools pool; that
 integration is verified through `cast` and the explorer.
 
-Do not describe the app as finished, wallet-tested, transaction-tested, hosted, or fully
-validated. The remaining app gap is wallet integration testing, not the read-only build.
+Do not describe the app as finished, wallet-tested, transaction-tested, or fully validated.
+It is hosted at [https://roster-mezo.vercel.app/](https://roster-mezo.vercel.app/), but the
+remaining app gap is wallet integration testing, not the read-only build.
 
 ---
 
@@ -784,7 +785,8 @@ What cannot be demonstrated today:
 - pool-side exercise of wrapper positions;
 - wrapper settlement after expiry (the wrapper blocks it);
 - a wallet transaction signed and broadcast through the app;
-- an automated browser E2E suite or hosted app;
+- an automated browser E2E suite or a wallet-tested app (the Wave 1 build is hosted at
+  `https://roster-mezo.vercel.app/`);
 - an audit of Roster or the Mezo Pools integration.
 
 ---
@@ -844,9 +846,9 @@ Do **not** claim any of the following:
   can settle after expiry;
 - that the pool can exercise its own positions;
 - that the app supports the wrapper or Mezo Pools pool;
-- that the app is finished, wallet-tested, transaction-tested, hosted, or fully
-  validated; a read-only browser pass with screenshots exists, but no wallet transaction
-  has been sent through the UI;
+- that the app is finished, wallet-tested, transaction-tested, or fully validated; it is
+  hosted, but only a read-only browser pass with screenshots exists, and no wallet
+  transaction has been sent through the UI;
 - that the project uses the MEZO governance token;
 - that Mezo's system-wide collateral ratio was checked during deployment;
 - that an independent fork test executed Mezo liquidation, redemption, or close flows;

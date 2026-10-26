@@ -580,7 +580,8 @@ Before treating a future deployment as valid:
 - No wrapper or pool support in the app.
 - No wallet transaction through the app; the five-page read-only browser pass and
   screenshots are recorded, but no wallet was connected.
-- No automated app E2E suite or hosted app.
+- No automated app E2E suite or wallet-tested app. The Wave 1 build is hosted at
+  `https://roster-mezo.vercel.app/`.
 - No mainnet deployment.
 - No guarantee that native BTC and ERC-20 BTC are convertible.
 - No guarantee that the order book has a buyer.

@@ -17,6 +17,10 @@ own record in [`docs/COMPOSABILITY.md`](docs/COMPOSABILITY.md). The Wave 2 resub
 scope, changes since Wave 1, and acceptance criteria are in
 [`docs/WAVE_2.md`](docs/WAVE_2.md).
 
+**Live links:** [Hosted app](https://roster-mezo.vercel.app/) ·
+[Slide deck](https://gamma.app/docs/Roster-Fixed-Series-BTC-Puts-on-Mezo-rzd9bk9woo3ois0) ·
+[Mezo testnet explorer](https://explorer.test.mezo.org/address/0xC23167867baAF830D586598DE0634E26fD895b92)
+
 ---
 
 ## Contents
@@ -70,7 +74,7 @@ scope, changes since Wave 1, and acceptance criteria are in
 | Organic demand | **None observed**; the buyer and external account are generated demo accounts |
 | Trove closure | **Not demonstrated**; MUSD shortfall |
 | Main expiry/finalize | **Not reached** |
-| Web application | **Implemented; production build passes; five-page read-only browser pass**; no wallet transaction performed through the UI |
+| Web application | **Implemented, production build passes, and hosted** at [roster-mezo.vercel.app](https://roster-mezo.vercel.app/); five-page read-only browser pass; no wallet transaction performed through the UI |
 | Browser evidence | Read-only headless Chrome at 1440px and 390px emulation; no app exceptions or horizontal overflow; screenshots in [`docs/screenshots/`](docs/screenshots/) |
 | Production readiness | **No** |
 
@@ -117,6 +121,13 @@ the position expires worthless and the writer recovers the remaining collateral 
 ## 3. Live deployment
 
 All addresses below are on **Mezo testnet, chain ID 31611**.
+
+**Hosted app:** [https://roster-mezo.vercel.app/](https://roster-mezo.vercel.app/) — the
+live Wave 1 build. It predates the wrapper and Mezo Pools work; the current repository
+state is described below.
+
+**Slide deck:** [Roster — Fixed-Series BTC Puts on
+Mezo](https://gamma.app/docs/Roster-Fixed-Series-BTC-Puts-on-Mezo-rzd9bk9woo3ois0)
 
 ### 3.1 Contracts
 
@@ -936,6 +947,12 @@ The repository contains a static Vite + ethers **multi-page** application under
 [`app/`](app/). It is not a single-page app. Five separate HTML entries share one
 page-aware module and one stylesheet:
 
+**Hosted deployment:** [https://roster-mezo.vercel.app/](https://roster-mezo.vercel.app/) —
+the live Wave 1 build; it predates the wrapper/pool work described in this repository.
+
+**Slide deck:** [Roster — Fixed-Series BTC Puts on
+Mezo](https://gamma.app/docs/Roster-Fixed-Series-BTC-Puts-on-Mezo-rzd9bk9woo3ois0)
+
 ```text
 app/
 ├── index.html       # long-form landing page and live ticket
@@ -1055,7 +1072,8 @@ The build output is recorded in [`docs/TEST_OUTPUT.txt`](docs/TEST_OUTPUT.txt).
 - No browser wallet was connected and no transaction was sent through the UI.
 - No screenshot shows a wallet signature, pending transaction, confirmation, or error.
 - No automated end-to-end browser test suite.
-- No hosted production deployment.
+- The hosted deployment is the Wave 1 build; it has not been rebuilt since the wrapper,
+  pool, and 91-test work landed.
 - The app does not surface the position wrapper or the Mezo Pools wrapper/MUSD pool. Those
   are verified through `cast` and the explorer, not through the UI.
 - The app cannot close the live trove with current balances and cannot finalize the main
@@ -1425,8 +1443,8 @@ Do **not** claim any of the following:
   an exercising address before expiry.
 - That the app supports the wrapper or Mezo Pools pool. It does not currently surface
   either; that integration is verified through `cast` and the explorer.
-- That the app is finished, wallet-tested, transaction-tested, hosted, or fully
-  validated. A read-only five-page browser pass and screenshots exist, but no wallet was
+- That the app is finished, wallet-tested, transaction-tested, or fully validated. It is
+  hosted, but only a read-only five-page browser pass and screenshots exist; no wallet was
   connected and no transaction was sent through the UI.
 - That the project uses the MEZO governance token.
 - That Mezo's system-wide collateral ratio was checked in the deployment script.
@@ -1448,7 +1466,8 @@ Near-term, in order:
    record the signature, confirmation, and failure states. The read-only five-page
    browser pass, mobile layout check, and screenshots are already complete; wallet
    transaction testing is not.
-2. Add an automated end-to-end browser test suite and a hosted demo.
+2. Rebuild the hosted demo with the wrapper/pool view and add an automated end-to-end
+   browser test suite.
 3. Surface the wrapper and wrapper/MUSD pool in the app, including explicit pre-expiry
    unwind warnings, or document permanently that the app does not cover them.
 4. Find or create a compliant MUSD source to close the trove, or explicitly leave it open

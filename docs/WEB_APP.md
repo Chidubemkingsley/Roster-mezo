@@ -781,7 +781,8 @@ to commit; private keys are never part of the app.
 - No dark/light theme switch.
 - No explicit wallet disconnect button.
 - No automated end-to-end browser test suite.
-- No hosted production demo.
+- No wallet-tested production demo; the Wave 1 build is hosted at
+  [https://roster-mezo.vercel.app/](https://roster-mezo.vercel.app/).
 - No wallet transaction walkthrough or transaction screenshots.
 - No position-wrapper UI and no Mezo Pools wrapper/MUSD pool UI. The app does not show
   wrapper balances, pool reserves, or a post-expiry wrapper warning.
@@ -793,7 +794,7 @@ to commit; private keys are never part of the app.
 - No wallet transaction has been performed through the UI.
 - No wallet signature, pending, confirmation, or failure state has been recorded.
 - No automated app tests.
-- No hosted deployment.
+- The hosted deployment is the Wave 1 build and has not been rebuilt for the wrapper/pool.
 - Activity timestamps depend on block metadata reads; the feed is not indexed.
 - Premium-paid stat depends on event-log availability.
 - Partial fills are not exposed in the UI even though the contract supports them.

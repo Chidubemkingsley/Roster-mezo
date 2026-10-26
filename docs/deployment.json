@@ -7,6 +7,11 @@
     "rpc": "https://rpc.test.mezo.org",
     "explorer": "https://explorer.test.mezo.org"
   },
+  "links": {
+    "app": "https://roster-mezo.vercel.app/",
+    "slideDeck": "https://gamma.app/docs/Roster-Fixed-Series-BTC-Puts-on-Mezo-rzd9bk9woo3ois0",
+    "repository": "https://github.com/Chidubemkingsley/Roster-mezo"
+  },
   "snapshot": {
     "blockNumber": 16379045,
     "timestamp": 1793009756,
@@ -32,7 +37,7 @@
     "appReadOnlyPassPredatesWrapper": true,
     "appWalletTransaction": false,
     "appAutomatedE2e": false,
-    "appHosted": false,
+    "appHosted": true,
     "appWrapperPoolSupport": false,
     "mainnet": false
   },
@@ -628,7 +633,7 @@
     ],
     "walletTransaction": false,
     "automatedE2e": false,
-    "hosted": false,
+    "hosted": true,
     "wrapperPoolSupport": false,
     "note": "The read-only browser pass predates the wrapper/pool and shows historical 75-lot state."
   }

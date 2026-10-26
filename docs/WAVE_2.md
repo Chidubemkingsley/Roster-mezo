@@ -47,7 +47,7 @@ not built yet. The live evidence below is Wave 1 plus the post-Wave-1 composabil
 | What is Roster? | A fixed-strike, fixed-expiry, physically settled BTC put mechanism on Mezo. A trove-backed writer borrows MUSD against native BTC and funds a series. Buyers pay a fixed MUSD premium; holders can exercise by delivering ERC-20 BTC for an exact MUSD payout, or sell lots through an ask book. |
 | What was delivered in Wave 1? | Factory, series, ask book, per-series trove vault, five-page Vite app, a live main series, a live expiry demo, primary purchase, secondary fill, physical exercise, premium withdrawal, and 82 passing tests. |
 | What changed since Wave 1? | A standard `RosterPositionWrapper` over **actual** series lots, a live Mezo Pools wrapper/MUSD pool, a third-party account that acquired wrapper exposure through the router and exercised one lot, 9 wrapper tests (91 total), expanded evidence docs, and corrected native-BTC/ERC-20-BTC disclosures. No core series terms changed. |
-| What will Wave 2 add? | A hosted, wallet-tested app with wrapper/pool support and automated E2E coverage; a complete vault-backed lifecycle on a new right-sized series, including `finalize()` and `closeTrove()`; at least three independent testnet users; a scoped independent security review with remediation; and monitoring/runbooks. |
+| What will Wave 2 add? | A wallet-tested rebuild of the existing hosted app with wrapper/pool support and automated E2E coverage; a complete vault-backed lifecycle on a new right-sized series, including `finalize()` and `closeTrove()`; at least three independent testnet users; a scoped independent security review with remediation; and monitoring/runbooks. |
 | Is Wave 2 a mainnet launch? | **No.** Wave 2 is testnet-only. Mainnet remains a later gate after audit and operational readiness. |
 | Is the existing main trove closable? | **No, not with current balances.** The shortfall is about `1,552.05 MUSD`. Wave 2 will prove the close path on a new, deliberately small, fundable series rather than misrepresent the main trove. |
 | Is there organic demand? | **No.** The buyer and external account are generated demo accounts, and the pool is deployer-seeded. Wave 2 will test with independent users but will not call testnet participation “demand.” |
@@ -200,7 +200,8 @@ These are unchanged from Wave 1 and remain open:
 - The app’s only browser evidence is a read-only pass at desktop and mobile widths. It
   predates the wrapper/pool, observed `75` active lots and `1,498 MUSD` collateral, and did
   not connect a wallet.
-- No wallet transaction through the UI, no automated browser E2E suite, no hosted demo.
+- No wallet transaction through the UI, no automated browser E2E suite. The app is hosted
+  at `https://roster-mezo.vercel.app/`, but that deployment is still the Wave 1 build.
 - No audit or independent security review.
 - No organic demand, market-based premium discovery, or independent liquidity.
 - Main-series expiry/finalization has not occurred.
@@ -308,7 +309,8 @@ composability path, with real wallet evidence.
 
 Deliverables:
 
-- Host the production build on a public static URL.
+- Rebuild and redeploy the existing hosted app at `https://roster-mezo.vercel.app/` with
+  the current contracts, 91-test state, and wrapper/pool view.
 - Connect an injected wallet on Mezo testnet and exercise the primary flows live:
   purchase, list, fill-all, cancel, exercise, and owner premium withdrawal.
 - Add a wrapper/pool view that shows:
@@ -453,7 +455,7 @@ Timelines are measured from Wave 2 acceptance, not from the date of this documen
 
 | Window | Milestone | Evidence gate |
 | --- | --- | --- |
-| Days 1–10 | Hosted build; hosted URL and deployment notes | Public URL; five pages load |
+| Days 1–10 | Rebuilt hosted app; deployment notes | Public URL; five pages load |
 | Days 1–20 | Live wallet pass for purchase, list, fill, cancel, exercise, premium | Transaction hashes, screenshots, video |
 | Days 10–30 | Wrapper/pool UI and wrapper actions; automated Playwright suite | UI demo; CI E2E run; live wrapper tx |
 | Days 20–40 | New right-sized vault-backed series created and funded | Addresses; deployment and funding receipts |
@@ -657,7 +659,7 @@ cd app && npm run build
 
 ### 11.4 Milestones
 
-> Days 1–30: hosted app, live wallet purchase/exercise, wrapper/pool UI, automated E2E.
+> Days 1–30: rebuilt hosted app, live wallet purchase/exercise, wrapper/pool UI, automated E2E.
 > Days 20–60: new right-sized vault-backed series through expiry, `finalize()`, and
 > `closeTrove()`. Days 35–75: three independent testnet users, scoped security review,
 > remediation, monitoring, and runbook. Days 70–90: refreshed docs, demo video, and final

@@ -551,7 +551,8 @@ expiry proceeds. The live close is blocked by liquidity, not by missing code.
 - Pool-side exercise, or wrapper settlement after expiry.
 - Wrapper/pool support in the web app.
 - A wallet transaction sent through the web app.
-- An automated end-to-end browser test suite or hosted app deployment.
+- An automated end-to-end browser test suite or a wallet-tested app. The Wave 1 build is
+  hosted at `https://roster-mezo.vercel.app/`.
 - Mainnet deployment.
 
 ---
