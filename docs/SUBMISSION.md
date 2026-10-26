@@ -11,7 +11,8 @@
 > This document is current as of the snapshot in
 > [`DEPLOYMENT_RECORD.md`](DEPLOYMENT_RECORD.md). The root [`README.md`](../README.md)
 > remains the canonical project record. Where this narrative and the on-chain state
-> disagree, the chain and the README win.
+> disagree, the chain and the README win. Wave 2 resubmission content, including explicit
+> changes since Wave 1 and the planned Wave 2 scope, is in [`WAVE_2.md`](WAVE_2.md).
 
 ---
 
@@ -810,7 +811,8 @@ script/
   DeployStack.s.sol          intended full-stack script
   CheckMezoAssets.s.sol      asset/protocol preflight
 docs/
-  SUBMISSION.md              this narrative
+  SUBMISSION.md              this Wave 1 narrative
+  WAVE_2.md                  Wave 2 resubmission: changes and planned scope
   COMPOSABILITY.md           wrapper, Mezo Pools, external-account evidence
   VALIDATION_STATUS.md       validation and live-state status
   DEPLOYMENT_RECORD.md       addresses, hashes, terms, snapshots

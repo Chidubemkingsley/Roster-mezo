@@ -13,7 +13,9 @@
 This README is the most complete description of the repository as of **2026-10-26**.
 Where older documents disagree with this file, the on-chain state and the addresses and
 transactions recorded here take precedence. The external-composability evidence has its
-own record in [`docs/COMPOSABILITY.md`](docs/COMPOSABILITY.md).
+own record in [`docs/COMPOSABILITY.md`](docs/COMPOSABILITY.md). The Wave 2 resubmission
+scope, changes since Wave 1, and acceptance criteria are in
+[`docs/WAVE_2.md`](docs/WAVE_2.md).
 
 ---
 
@@ -1436,6 +1438,10 @@ Do **not** claim any of the following:
 
 ## 20. Roadmap
 
+The Wave 2 resubmission scope, acceptance criteria, and timeline are in
+[`docs/WAVE_2.md`](docs/WAVE_2.md). The roadmap below remains directional; items are
+commitments only when the corresponding work is funded and completed.
+
 Near-term, in order:
 
 1. Connect an injected wallet, execute a live purchase or exercise through the UI, and
@@ -1473,7 +1479,8 @@ Medium-term:
 | Document | Purpose | Status |
 | --- | --- | --- |
 | [`README.md`](README.md) | Primary project, deployment, and evidence record | This file; current |
-| [`docs/SUBMISSION.md`](docs/SUBMISSION.md) | Submission narrative | Current; matches the live deployment |
+| [`docs/SUBMISSION.md`](docs/SUBMISSION.md) | Wave 1 submission narrative | Current; matches the live deployment |
+| [`docs/WAVE_2.md`](docs/WAVE_2.md) | Wave 2 resubmission: changes since Wave 1 and planned scope | Proposal; Wave 2 work is not yet delivered |
 | [`docs/COMPOSABILITY.md`](docs/COMPOSABILITY.md) | Wrapper, Mezo Pools pool, and external-account evidence | Current; live testnet record |
 | [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md) | Test scenarios and invariants | Current; 91/91 pass |
 | [`docs/TEST_OUTPUT.txt`](docs/TEST_OUTPUT.txt) | Recorded test/build/live/browser evidence | Current; includes wrapper tests and external composability evidence |
