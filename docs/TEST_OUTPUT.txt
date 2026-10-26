@@ -86,7 +86,7 @@ NOTE: static check only; no Solidity compilation or EVM tests were performed
 
 The GitHub Actions workflow at `.github/workflows/test.yml` runs the build, both test
 profiles, the formatting check, and this static script. The workflow has been observed
-passing on GitHub: run `40264693650`.
+passing on GitHub: run `40314178418`.
 
 ===============================================================================
 6. Test distribution

@@ -105,7 +105,7 @@ PASS: documented strike/premium arithmetic is consistent
 This is a static repository check only. It does not compile Solidity or execute EVM
 tests. The GitHub Actions workflow at `.github/workflows/test.yml` runs `forge build`,
 the default and CI test profiles, `forge fmt --check`, and this script. The workflow has
-been observed passing on GitHub: run `40264693650`.
+been observed passing on GitHub: run `40314178418`.
 
 ### 2.4 Default test profile
 
