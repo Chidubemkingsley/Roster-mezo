@@ -11,10 +11,15 @@ errors: list[str] = []
 
 required_files = [
     "src/RosterBtcPutSeries.sol",
+    "src/RosterTroveWriter.sol",
+    "src/RosterOrderBook.sol",
+    "src/RosterSeriesFactory.sol",
+    "src/RosterPositionWrapper.sol",
     "src/MockERC20.sol",
     "src/TestERC20Helpers.sol",
     "test/TestBase.sol",
     "test/RosterBtcPutSeries.t.sol",
+    "test/RosterPositionWrapper.t.sol",
     "test/SeriesInvariant.t.sol",
     "script/CheckMezoAssets.s.sol",
     "script/DeploySeries.s.sol",
@@ -40,8 +45,10 @@ for file in [*ROOT.glob("src/**/*.sol"), *ROOT.glob("test/**/*.sol"), *ROOT.glob
 
 unit_file = (ROOT / "test/RosterBtcPutSeries.t.sol").read_text()
 invariant_file = (ROOT / "test/SeriesInvariant.t.sol").read_text()
+wrapper_test_file = (ROOT / "test/RosterPositionWrapper.t.sol").read_text()
 unit_names = re.findall(r"function\s+(test_[A-Za-z0-9_]*)\s*\(", unit_file)
 invariant_names = re.findall(r"function\s+(invariant_[A-Za-z0-9_]*)\s*\(", invariant_file)
+wrapper_test_names = re.findall(r"function\s+(test_[A-Za-z0-9_]*)\s*\(", wrapper_test_file)
 if len(unit_names) != 36:
     errors.append(f"expected 36 unit-test functions, found {len(unit_names)}")
 if len(set(unit_names)) != len(unit_names):
@@ -50,6 +57,10 @@ if len(invariant_names) != 6:
     errors.append(f"expected 6 invariant functions, found {len(invariant_names)}")
 if len(set(invariant_names)) != len(invariant_names):
     errors.append("invariant function names are not unique")
+if len(wrapper_test_names) != 9:
+    errors.append(f"expected 9 wrapper-test functions, found {len(wrapper_test_names)}")
+if len(set(wrapper_test_names)) != len(wrapper_test_names):
+    errors.append("wrapper-test function names are not unique")
 
 must_have_tests = {
     "test_solvency_after_every_action",
@@ -65,12 +76,28 @@ must_have_tests = {
 for name in sorted(must_have_tests - set(unit_names)):
     errors.append(f"required regression test missing: {name}")
 
+must_have_wrapper_tests = {
+    "test_deposit_and_withdraw_round_trip",
+    "test_exercise_via_wrapper",
+    "test_expiry_blocks_settlement_but_not_wrapper_transfers",
+    "test_non_multiple_and_zero_amounts_revert",
+    "test_underlying_and_supply_stay_in_sync",
+    "test_withdraw_to_writer_reverts",
+}
+for name in sorted(must_have_wrapper_tests - set(wrapper_test_names)):
+    errors.append(f"required wrapper regression test missing: {name}")
+
 source = (ROOT / "src/RosterBtcPutSeries.sol").read_text()
 if "function totalSupply()" not in source or "uint256 private _totalSupply;" not in source:
     errors.append("position supply counter/getter missing")
 for token in ("_requireExactIncrease", "_requireExactDecrease", "_checkedMul", "nonReentrant"):
     if token not in source:
         errors.append(f"expected hardening primitive missing: {token}")
+
+wrapper_source = (ROOT / "src/RosterPositionWrapper.sol").read_text()
+for token in ("UNIT = 1e18", "underlyingLots", "function deposit", "function withdraw", "function exercise", "nonReentrant"):
+    if token not in wrapper_source:
+        errors.append(f"position wrapper is missing expected primitive: {token}")
 
 # Ensure deployment, checker, and sample environment use the same key names.
 env = (ROOT / ".env.example").read_text()
@@ -120,10 +147,12 @@ if errors:
 print("PASS: required files and relative imports resolve")
 print(f"PASS: {len(unit_names)} unique unit-test functions found")
 print(f"PASS: {len(invariant_names)} unique invariant functions found")
+print(f"PASS: {len(wrapper_test_names)} unique wrapper-test functions found")
 print("PASS: required regression test names present")
 print("PASS: env keys are consistent across sample config and scripts")
 print("PASS: sample config defaults to the verified Mezo MUSD and ERC-20 BTC addresses")
 print("PASS: CI profile and compile/default/expanded test workflow are configured")
 print("PASS: deployment script contains chain, writer, code, and decimal preflight checks")
+print("PASS: wrapper source, wrapper test suite, and wrapper test count are present")
 print("PASS: documented strike/premium arithmetic is consistent")
 print("NOTE: static check only; no Solidity compilation or EVM tests were performed")

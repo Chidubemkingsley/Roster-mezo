@@ -8,9 +8,9 @@
     "explorer": "https://explorer.test.mezo.org"
   },
   "snapshot": {
-    "blockNumber": 16359943,
-    "timestamp": 1792930266,
-    "utc": "2026-10-25T12:11:06Z",
+    "blockNumber": 16379045,
+    "timestamp": 1793009756,
+    "utc": "2026-10-26T10:15:56Z",
     "note": "Debt, interest, ICR, and balances move. These are snapshot values."
   },
   "status": {
@@ -22,16 +22,24 @@
     "organicDemand": false,
     "premiumDiscovery": false,
     "mezoTokenIntegrated": false,
+    "wrapperDeployed": true,
+    "wrapperPoolDeployed": true,
+    "externalComposabilityDemonstrated": true,
+    "wrapperPoolOrganicLiquidity": false,
+    "wrapperPoolCanExercise": false,
     "appBuild": "pass",
     "appReadOnlyBrowserPass": true,
+    "appReadOnlyPassPredatesWrapper": true,
     "appWalletTransaction": false,
     "appAutomatedE2e": false,
     "appHosted": false,
+    "appWrapperPoolSupport": false,
     "mainnet": false
   },
   "accounts": {
     "deployer": "0x90356CF97B3BF1749A604d3F89b3DF3602A459E3",
-    "demoBuyer": "0x1A1A70AF037123dda8A1B49BA245234f318Dd3b5"
+    "demoBuyer": "0x1A1A70AF037123dda8A1B49BA245234f318Dd3b5",
+    "externalDemo": "0x1Ed24CD690076B70381bEeb2Ce0D3d7F7625Ee3C"
   },
   "contracts": {
     "factory": {
@@ -73,6 +81,34 @@
       "block": 16359511,
       "gasUsed": 2500000,
       "codePresent": true
+    },
+    "positionWrapper": {
+      "name": "RosterPositionWrapper",
+      "address": "0x4726a021ec380a755EBE883BEb800A5d06723E41",
+      "deployTx": "0xe6e4b8c60ac5c8cd2c6f03ed541c82a5af8af42e0f45e1c3b272a956b5b297e7",
+      "block": 16378802,
+      "gasUsed": 1348146,
+      "codePresent": true,
+      "series": "0xC23167867baAF830D586598DE0634E26fD895b92",
+      "unit": "1000000000000000000",
+      "decimals": 18
+    }
+  },
+  "externalVenue": {
+    "protocol": "Mezo Pools",
+    "basicPoolFactory": "0x4947243CC818b627A5D06d14C4eCe7398A23Ce1A",
+    "basicRouter": "0x9a1ff7FE3a0F69959A3fBa1F1e5ee18e1A9CD7E9",
+    "wrapperMusdPool": {
+      "address": "0xED305fEF4c11f95dAe1d144e78B2B62be50965F2",
+      "name": "vAMM-MUSD/wRBTC-PUT",
+      "stable": false,
+      "token0": "0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503",
+      "token1": "0x4726a021ec380a755EBE883BEb800A5d06723E41",
+      "createTx": "0xa5ef82750d15bfb89e2db3cd99e2f65c4c044131fbfce8a1c00aba99f470c3d8",
+      "block": 16378881,
+      "gasUsed": 708845,
+      "factoryRecognized": true,
+      "allPoolsLengthAtSnapshot": 38
     }
   },
   "assets": {
@@ -109,19 +145,22 @@
     "expiry": 1795519026,
     "expiryUtc": "2026-11-24T11:17:06Z",
     "positionDecimals": 0,
-    "activeLots": 75,
-    "totalSupply": 75,
-    "collateralBalanceRaw": "1498000000000000000000",
-    "reservedRaw": "6000000000000000000",
+    "activeLots": 74,
+    "totalSupply": 74,
+    "collateralBalanceRaw": "1497920000000000000000",
+    "reservedRaw": "5920000000000000000",
     "excessRaw": "1492000000000000000000",
     "totalDepositedRaw": "1500000000000000000000",
-    "totalPayoutsRaw": "2000000000000000000",
+    "totalPayoutsRaw": "2080000000000000000",
     "expiryReleaseRaw": "0",
     "premiumBalanceRaw": "0",
     "expired": false,
     "positions": {
       "buyer": 25,
-      "deployer": 25,
+      "deployerDirect": 5,
+      "deployerViaWrapper": 5,
+      "poolViaWrapper": "13997264001463180664",
+      "externalViaWrapper": "2735998536819336",
       "orderBookEscrow": 25
     }
   },
@@ -150,17 +189,48 @@
     "musdBalanceRaw": "400000000000000000000",
     "idleMusdRaw": "400000000000000000000",
     "reservedMusdRaw": "0",
-    "erc20BtcBalanceRaw": "25000000000000",
+    "erc20BtcBalanceRaw": "26000000000000",
     "premiumForwardedRaw": "100000000000000000",
     "expiryForwardedRaw": "0",
     "totalDepositedToSeriesRaw": "1500000000000000000000",
     "minIcrRaw": "1500000000000000000"
   },
+  "positionWrapper": {
+    "address": "0x4726a021ec380a755EBE883BEb800A5d06723E41",
+    "series": "0xC23167867baAF830D586598DE0634E26fD895b92",
+    "unitRaw": "1000000000000000000",
+    "decimals": 18,
+    "totalSupplyRaw": "19000000000000000000",
+    "underlyingLots": 19,
+    "seriesTokenBalance": 19,
+    "isLive": true,
+    "balances": {
+      "deployerRaw": "5000000000000000000",
+      "poolRaw": "13997264001463180664",
+      "externalRaw": "2735998536819336"
+    }
+  },
+  "wrapperMusdPool": {
+    "address": "0xED305fEF4c11f95dAe1d144e78B2B62be50965F2",
+    "symbol": "vAMM-MUSD/wRBTC-PUT",
+    "stable": false,
+    "musdReserveRaw": "32149140000000000",
+    "wrapperReserveRaw": "13997264001463180664",
+    "impliedMusdPerLotRaw": "2296816006088000",
+    "lpTotalSupplyRaw": "670820393249936907",
+    "deployerLpBalanceRaw": "670820393249935907",
+    "externalLpBalanceRaw": "0",
+    "initialSeed": {
+      "lots": 15,
+      "musdRaw": "30000000000000000"
+    },
+    "note": "Deployer-seeded, thin, and not organic liquidity. The AMM cannot call wrapper.exercise()."
+  },
   "trove": {
     "collateralNativeBtcRaw": "43000000000000000",
-    "debtRaw": "2202001777260997830208",
-    "icrRaw": "1569883623935996387",
-    "priceRaw": "80392710000000000000000",
+    "debtRaw": "2202057203102504956752",
+    "icrRaw": "1568564521549903788",
+    "priceRaw": "80327181470000000000000",
     "status": 1,
     "requestedBorrowRaw": "2000000000000000000000",
     "borrowingFeeRaw": "2000000000000000000",
@@ -168,13 +238,13 @@
     "initialDebtRaw": "2202000000000000000000"
   },
   "troveClose": {
-    "requiredRaw": "2002001777260997830208",
+    "requiredRaw": "2002057203102504956752",
     "vaultIdleRaw": "400000000000000000000",
-    "ownerMusdRaw": "50050000000000000000",
-    "availableRaw": "450050000000000000000",
-    "shortfallRaw": "1551951777260997830208",
+    "ownerMusdRaw": "50010000000000000000",
+    "availableRaw": "450010000000000000000",
+    "shortfallRaw": "1552047203102504956752",
     "possible": false,
-    "note": "Series reserve is not available while the series is live; no DEX route found"
+    "note": "Series reserve is not available while the series is live. A Mezo Pools MUSD/BTC pool exists, but free BTC plus available MUSD still leaves a gap above 1,170 MUSD before fees and gas."
   },
   "orderBook": {
     "address": "0xc97B2fe5ba7e68ed7b52a657a137Cf636149cd25",
@@ -193,12 +263,16 @@
   },
   "balances": {
     "deployer": {
-      "musdRaw": "50050000000000000000",
-      "erc20BtcRaw": "4999993948523024"
+      "musdRaw": "50010000000000000000",
+      "erc20BtcRaw": "4697993136676592"
     },
     "buyer": {
       "musdRaw": "51940000000000000000",
       "erc20BtcRaw": "1974999257200000"
+    },
+    "externalDemo": {
+      "musdRaw": "87850000000000000000",
+      "erc20BtcRaw": "300999867586176"
     }
   },
   "transactions": [
@@ -248,6 +322,12 @@
       "step": "Fund buyer 50 MUSD",
       "hash": "0xfcdedbe4097ef8c5b874ec18535cca1fae9846b5c75419a3a84d0fbbf82c3e8c",
       "block": 16359397,
+      "status": 1
+    },
+    {
+      "step": "Fund buyer 0.001 native gas BTC",
+      "hash": "0x430568bca841c1f3cb0514b888831dbadc614256672cc2d4ab16b8a56db6007a",
+      "block": 16359401,
       "status": 1
     },
     {
@@ -333,14 +413,162 @@
       "hash": "0xdc1b099d2f1a6256de62fdb28698167728416a9fb9df895ac19062d81eb5dd8d",
       "block": 16359832,
       "status": 1
+    },
+    {
+      "step": "Deploy position wrapper",
+      "hash": "0xe6e4b8c60ac5c8cd2c6f03ed541c82a5af8af42e0f45e1c3b272a956b5b297e7",
+      "block": 16378802,
+      "status": 1
+    },
+    {
+      "step": "Approve series to wrapper (10 lots)",
+      "hash": "0x4d2cf5c3eff0f19deb0d5f714f06a30dc4d9e32901502f8cd63019dde0608741",
+      "block": 16378810,
+      "status": 1
+    },
+    {
+      "step": "Deposit first 10 lots",
+      "hash": "0x596fcecc54e2de075eb84efcb0a3f478d0e484344bde89878a8dc849e8087728",
+      "block": 16378811,
+      "status": 1
+    },
+    {
+      "step": "Create wrapper/MUSD Mezo Pools pool",
+      "hash": "0xa5ef82750d15bfb89e2db3cd99e2f65c4c044131fbfce8a1c00aba99f470c3d8",
+      "block": 16378881,
+      "status": 1
+    },
+    {
+      "step": "Approve 0.01 MUSD to router",
+      "hash": "0xfd4be100fa7ad7f0857d96639107e184b3729083bb12d20fd887bc72f2da0393",
+      "block": 16378893,
+      "status": 1
+    },
+    {
+      "step": "Approve 5 wrapper to router",
+      "hash": "0x8a96714c29610cc9ec7886351542dcec177468c4fdfc1bc64f4e43f3c974b475",
+      "block": 16378895,
+      "status": 1
+    },
+    {
+      "step": "Add first liquidity (5 lots + 0.01 MUSD)",
+      "hash": "0xcd453d9521f628f10b3c508a903754fcf06c3f05e30800d06a9b8413d0d39e6d",
+      "block": 16378904,
+      "status": 1
+    },
+    {
+      "step": "Approve 10 more series lots",
+      "hash": "0xe6803824ed88d8911f41405994eb9e2f200552397b43bbb475a0e3a00ec80237",
+      "block": 16378937,
+      "status": 1
+    },
+    {
+      "step": "Deposit 10 more lots",
+      "hash": "0x9da7db90d7496b5c948840a2fbdf4a9d4f8c6c523733ae59301bf53f4b153bc3",
+      "block": 16378940,
+      "status": 1
+    },
+    {
+      "step": "Approve 0.02 MUSD to router",
+      "hash": "0xcddfbb6c95fcf6013dc8849d0ec48e4c3fa3b8a5027a3ed09f06a0b8a7298d32",
+      "block": 16378949,
+      "status": 1
+    },
+    {
+      "step": "Approve 10 wrapper to router",
+      "hash": "0x3eacf9e5dea3500f871e5ccae181e23b3889f3c4495afb0e2f4911d34ee78292",
+      "block": 16378951,
+      "status": 1
+    },
+    {
+      "step": "Add second liquidity (10 lots + 0.02 MUSD)",
+      "hash": "0xc971c780d6bdb91f81988faf81f662eaeb075b0bdfa9e7277bfedbd39da26bcd",
+      "block": 16378953,
+      "status": 1
+    },
+    {
+      "step": "Fund external account with 0.0003 native gas BTC",
+      "hash": "0xb6a3dfe9050927c35a276d40954777d2c3ca27ac18bc76f5d94324b1ae01e410",
+      "block": 16378963,
+      "status": 1
+    },
+    {
+      "step": "Fund external account with 0.01 MUSD",
+      "hash": "0x401cf6dbcd2c83a59d788fdc4f7f5802358ef3185a87f5ab98fb82ff5ee6ddbb",
+      "block": 16378965,
+      "status": 1
+    },
+    {
+      "step": "Fund external account with 0.000002 ERC-20 BTC",
+      "hash": "0x551ecebe47cfb624348f88601244193d44b6ea11b64d888fb64696a92c2a09f1",
+      "block": 16378967,
+      "status": 1
+    },
+    {
+      "step": "External approves MUSD to router",
+      "hash": "0x19773260376a1746d039f0899d6ddb35eaaa602286405a8b15e817531350ac0f",
+      "block": 16378978,
+      "status": 1
+    },
+    {
+      "step": "External swaps 0.00215 MUSD for wrapper",
+      "hash": "0xf996972556c8c11a49bf2a3857c38631dc69a313e584d97636bb424fa10e5cd1",
+      "block": 16378984,
+      "status": 1
+    },
+    {
+      "step": "External approves ERC-20 BTC to wrapper",
+      "hash": "0x0cef19d51580d817ccecd24304b1fe3190966560a0b3bf9daac098dacf83bee7",
+      "block": 16378989,
+      "status": 1
+    },
+    {
+      "step": "External exercises 1 lot",
+      "hash": "0xf9376c6eafd76fbaeb96b1536814fad60c84e9f888b9aecae2af6c5e7fd4bab7",
+      "block": 16378991,
+      "status": 1
     }
   ],
   "tests": {
     "format": "pass",
     "build": "pass-with-lint-warnings",
-    "default": "82/82",
-    "ci": "82/82",
+    "default": "91/91",
+    "ci": "91/91",
+    "suites": {
+      "RosterBtcPutSeriesTest": 36,
+      "RosterTroveWriterTest": 23,
+      "RosterOrderBookTest": 13,
+      "RosterSeriesFactoryTest": 4,
+      "RosterPositionWrapperTest": 9,
+      "SeriesInvariantTest": 6
+    },
+    "staticValidate": "pass",
+    "ciWorkflowRun": "40264693650",
     "audit": false
+  },
+  "composability": {
+    "approach": "ERC-20 wrapper over actual series lots plus a third-party Mezo Pools volatile pool",
+    "wrapperUnit": "1e18 wrapper units = 1 series lot",
+    "poolSeedLots": 15,
+    "poolSeedMusdRaw": "30000000000000000",
+    "externalAccount": "0x1Ed24CD690076B70381bEeb2Ce0D3d7F7625Ee3C",
+    "externalHasDirectSeriesPosition": false,
+    "swapMusdInRaw": "2150000000000000",
+    "wrapperReceivedRaw": "1002735998536819336",
+    "exerciseLots": 1,
+    "exerciseMusdOutRaw": "80000000000000000",
+    "erc20BtcPaidRaw": "1000000000000",
+    "seriesActiveLotsBeforeAfter": [75, 74],
+    "wrapperSupplyBeforeAfterRaw": ["20000000000000000000", "19000000000000000000"],
+    "limitations": [
+      "pool is deployer-seeded, thin, and not organic liquidity",
+      "the AMM cannot call wrapper.exercise(); pool-held lots must be sold before expiry",
+      "wrapper deposit, withdraw, and exercise are blocked after expiry; wrapper tokens are worthless after expiry",
+      "fractional wrapper balances cannot be settled",
+      "direct series-token transfers to the wrapper are uncredited and unrecoverable",
+      "the wrapper is not trove collateral and is not redeemable for series collateral or native BTC",
+      "the app does not surface the wrapper or pool"
+    ]
   },
   "app": {
     "path": "app",
@@ -369,6 +597,7 @@
       "browser": "headless Chrome",
       "walletConnected": false,
       "transactionSent": false,
+      "predatesWrapperAndPool": true,
       "pagesLoaded": 5,
       "uncaughtExceptions": false,
       "desktopWidth": 1440,
@@ -399,6 +628,8 @@
     ],
     "walletTransaction": false,
     "automatedE2e": false,
-    "hosted": false
+    "hosted": false,
+    "wrapperPoolSupport": false,
+    "note": "The read-only browser pass predates the wrapper/pool and shows historical 75-lot state."
   }
 }

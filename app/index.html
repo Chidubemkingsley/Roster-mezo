@@ -373,11 +373,12 @@
       <section class="section" id="assets">
         <div class="section-head">
           <div class="section-copy">
-            <span class="eyebrow">04 · Asset separation</span>
-            <h2>Native BTC is not ERC-20 BTC.</h2>
+            <span class="eyebrow">04 · Asset accounting</span>
+            <h2>Locked collateral is not exercise inventory.</h2>
             <p>
-              Roster touches two different BTC representations. They have different roles,
-              different custody paths, and no automatic conversion inside this application.
+              Mezo locks native BTC as trove collateral. Liquid BTC is exposed through the
+              ERC-20 interface and is what an exerciser delivers. Roster does not unlock
+              trove collateral to settle exercises.
             </p>
           </div>
         </div>
@@ -396,11 +397,12 @@
             <span class="asset-tag">EXERCISE ASSET</span>
             <h3>ERC-20 BTC</h3>
             <p>
-              The token at <span class="mono">0x7b7C…0000</span> that a holder approves and
-              delivers to the writer on exercise. The holder must already own it. The series
-              checks the balance and allowance before paying the strike.
+              Mezo's ERC-20 interface to liquid BTC at <span class="mono">0x7b7C…0000</span>.
+              A holder approves and delivers it to the writer on exercise. The holder must
+              have liquid BTC available; the series checks balance and allowance before
+              paying the strike.
             </p>
-            <span class="asset-rule">Role: physical delivery · Must be acquired separately</span>
+            <span class="asset-rule">Role: physical delivery · Liquid BTC, not trove collateral</span>
           </article>
         </div>
         <div class="callout callout-warning">
@@ -677,8 +679,8 @@
         <div class="disclosure-item">
           <span class="disclosure-index">02</span>
           <div>
-            <strong>Two different BTC assets.</strong>
-            <p>Native BTC trove collateral and the ERC-20 BTC used for exercise are separate. Roster does not convert between them.</p>
+            <strong>Two BTC accounting paths.</strong>
+            <p>Trove collateral is locked in Mezo; ERC-20 BTC is liquid exercise inventory. Roster does not convert locked collateral into exercise inventory.</p>
           </div>
         </div>
         <div class="disclosure-item">

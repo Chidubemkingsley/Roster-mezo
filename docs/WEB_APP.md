@@ -5,7 +5,10 @@
 **Network:** Mezo testnet, chain ID 31611
 **Status:** implemented; production build passes; five pages loaded read-only in headless
 Chrome at desktop and mobile widths. **No wallet transaction has been performed through
-the UI.** Screenshots are in [`screenshots/`](screenshots/).
+the UI.** Screenshots are in [`screenshots/`](screenshots/). The browser pass predates the
+position wrapper and Mezo Pools integration; the app does **not** surface the wrapper or
+the wrapper/MUSD pool. Those are verified through `cast` and the explorer and recorded in
+[`COMPOSABILITY.md`](COMPOSABILITY.md).
 
 This document describes the multi-page application and every interaction that is wired
 in the current tree. It is written against `app/index.html`, `app/trade.html`,
@@ -33,7 +36,9 @@ The app:
 - has no backend, database, account system, custody, analytics, or order matching.
 
 The app is not a general-purpose exchange. It is a focused interface for the deployed
-main series, the expired demo series, the shared order book, and the writer vault.
+main series, the expired demo series, the shared order book, and the writer vault. It does
+**not** expose the position wrapper or the Mezo Pools wrapper/MUSD pool; those exist
+outside Roster's UI and are documented in [`COMPOSABILITY.md`](COMPOSABILITY.md).
 
 ### 1.1 Page map
 
@@ -193,8 +198,8 @@ The rest of the landing page is intentionally long-form:
 3. **“The terms, without the marketing”** — live main-series terms and a writer-trove
    summary, including strike, premium, expiry, lot size, collateral, active lots,
    capacity, vault collateral, debt, ICR, and a link to the vault page.
-4. **“Native BTC is not ERC-20 BTC”** — separate cards for trove collateral and exercise
-   settlement, plus an explicit no-conversion notice.
+4. **“Locked collateral is not exercise inventory”** — separate cards for locked trove
+   collateral and liquid ERC-20 BTC settlement, plus an explicit no-conversion notice.
 5. **“The trove is the writer. The debt is real”** — collateral posted, MUSD borrowed,
    debt and interest, liquidation exposure, and the separation from the series reserve.
 6. **“An ask book, not a promise of liquidity”** — escrow, direct MUSD payment, maturity
@@ -597,8 +602,8 @@ Three explicit disclosures appear in the shared footer:
 
 1. **Testnet prototype, not audited.** No audit or independent review; do not use real
    funds.
-2. **Two different BTC assets.** Native BTC trove collateral and ERC-20 BTC exercise
-   asset are separate; Roster does not convert between them.
+2. **Two BTC accounting paths.** Trove collateral is locked; ERC-20 BTC is liquid
+   exercise inventory. Roster does not convert locked collateral into exercise inventory.
 3. **Trove debt is an obligation.** Interest accrues; liquidation is possible; series
    collateral does not repay the trove automatically.
 
@@ -660,7 +665,11 @@ live Mezo RPC. The session used:
 - no account connection;
 - no transaction signature or broadcast.
 
-This is a **read-only smoke test**, not a wallet integration test.
+This is a **read-only smoke test**, not a wallet integration test. **It predates the
+position wrapper and Mezo Pools work.** The series values below (`75` lots, `1,498 MUSD`
+collateral, `0.000025` vault BTC) are historical; the current state is `74` lots,
+`1,497.92 MUSD`, and `0.000026` vault BTC, plus the wrapper/pool record in
+[`COMPOSABILITY.md`](COMPOSABILITY.md).
 
 ### 11.2 Results
 
@@ -716,13 +725,20 @@ Mobile (390px emulation):
 - [`vault-mobile.png`](screenshots/vault-mobile.png)
 - [`activity-mobile.png`](screenshots/activity-mobile.png)
 
-### 11.4 Build at the check
+The screenshots were captured before the disclosure copy was changed from "two BTC
+assets" to "two BTC accounting paths." The current source uses the corrected wording;
+the screenshots are retained as historical evidence of the read-only pass.
+
+### 11.4 Current production build
+
+The browser-check build was `32.68 kB` for `index.html` and `18.71 kB` for `vault.html`.
+The table below is the current source build after the disclosure-copy correction.
 
 ```text
-dist/index.html                  32.68 kB │ gzip:  7.39 kB
+dist/index.html                  32.82 kB │ gzip:  7.40 kB
 dist/trade.html                  16.77 kB │ gzip:  4.29 kB
 dist/secondary.html              14.60 kB │ gzip:  4.02 kB
-dist/vault.html                  18.71 kB │ gzip:  4.79 kB
+dist/vault.html                  18.75 kB │ gzip:  4.80 kB
 dist/activity.html               11.72 kB │ gzip:  3.41 kB
 dist/assets/main-uU5dssex.css    42.88 kB │ gzip:  8.54 kB
 dist/assets/main-3VKCUrVU.js    303.59 kB │ gzip: 109.60 kB
@@ -767,6 +783,8 @@ to commit; private keys are never part of the app.
 - No automated end-to-end browser test suite.
 - No hosted production demo.
 - No wallet transaction walkthrough or transaction screenshots.
+- No position-wrapper UI and no Mezo Pools wrapper/MUSD pool UI. The app does not show
+  wrapper balances, pool reserves, or a post-expiry wrapper warning.
 
 ---
 
@@ -782,6 +800,13 @@ to commit; private keys are never part of the app.
 - The app cannot close the live trove because the account is short MUSD.
 - The app cannot finalize the main series before its 2026-11-24 expiry.
 - The app does not convert native BTC to ERC-20 BTC.
+- The app does not surface the position wrapper or the Mezo Pools wrapper/MUSD pool.
+  Wrapper lots are not visible in the position viewer, and the app gives no pre-expiry
+  unwind warning for wrapper holders.
+- The browser pass is a historical read-only check (`75` lots, `1,498 MUSD`); one lot was
+  later exercised through the wrapper, so the live series is now `74` lots and
+  `1,497.92 MUSD`. The UI reads live data and will show the current values when opened.
 
 The accurate description is: **implemented, production-building, and read-only
-browser-validated on five pages at desktop and mobile widths; not wallet-tested.**
+browser-validated on five pages at desktop and mobile widths; not wallet-tested; does not
+surface the wrapper or Mezo Pools pool.**

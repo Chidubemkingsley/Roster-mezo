@@ -19,7 +19,7 @@
 
 Roster is a fixed-strike, fixed-expiry, physically settled BTC put mechanism built
 for Mezo EVM. It is not a general options exchange and it is not an audited financial
-product. It is a compact mechanism demonstration with four separable pieces:
+product. It is a compact mechanism demonstration with five separable pieces:
 
 1. **A permissionless series factory** that registers immutable series.
 2. **A series contract** that holds MUSD collateral, issues one-token-per-lot
@@ -29,11 +29,17 @@ product. It is a compact mechanism demonstration with four separable pieces:
    without a matching engine or custodian.
 4. **A per-series trove vault** that opens a real Mezo trove with native BTC, borrows
    MUSD, and funds its bound series as writer.
+5. **A standard ERC-20 position wrapper and a Mezo Pools market** that let actual series
+   positions be held, transferred, and settled outside Roster. The wrapper holds lots 1:1
+   at `1e18` units per lot; a live Mezo Pools volatile pool holds the wrapper against
+   MUSD.
 
 The main series is live on Mezo testnet with a **80,000 MUSD/BTC strike**, a
 **0.001 MUSD per lot premium**, and a **0.000001 BTC lot size**. A generated demo buyer
 purchased 100 lots, sold 25 through the order book, and exercised 25 by delivering
-ERC-20 BTC for an exact 2 MUSD payout. The writer vault opened a trove with
+ERC-20 BTC for an exact 2 MUSD payout. A separate generated account then acquired wrapper
+tokens through the Mezo Pools router and exercised one more lot, bringing cumulative
+payouts to 2.08 MUSD and leaving 74 active lots. The writer vault opened a trove with
 **0.043 native BTC**, borrowed MUSD, and deposited **1,500 MUSD** into the series.
 
 A second, short-dated series was deployed solely to exercise the expiry path. It has
@@ -43,7 +49,7 @@ behavior: the tokens are worthless after collateral release.
 
 The project deliberately records what is missing as clearly as what is delivered. A
 testnet deployment is not a security review, a customer base, or a promise of
-liquidity.
+liquidity. The wrapper/MUSD pool is deployer-seeded and thin, not organic liquidity.
 
 ---
 
@@ -55,20 +61,23 @@ liquidity.
 | `RosterSeriesFactory` | Delivered | 4 unit tests; live factory with two series |
 | `RosterOrderBook` | Delivered | 13 unit tests; live listing and fill |
 | `RosterTroveWriter` | Delivered | 23 unit tests; live trove and series funding |
+| `RosterPositionWrapper` | Delivered | 9 unit tests; live wrapper over main-series lots |
+| Mezo Pools wrapper/MUSD pool | Delivered, deployer-seeded | Live volatile pool through Mezo Pools; 15 lots / 0.03 MUSD seed |
+| External position composability | Delivered | Generated external account swapped MUSD for wrapper and exercised 1 lot |
 | Mezo testnet deployment | Delivered | [Deployment record](DEPLOYMENT_RECORD.md) |
 | Live primary purchase | Delivered | 100 lots purchased by a separate buyer |
 | Live secondary trade | Delivered | 50 lots listed, 25 filled |
-| Live physical exercise | Delivered | 25 lots exercised for 2 MUSD |
+| Live physical exercise | Delivered | 26 lots exercised for 2.08 MUSD total |
 | Live premium withdrawal | Delivered | 0.1 MUSD forwarded through the vault |
 | Live expiry path | Delivered on demo series | 20 MUSD released, tokens frozen |
-| Web interface | Implemented, five-page production build passes | Read-only browser pass at desktop and mobile widths; no wallet transaction |
-| Automated tests | 82/82 default and 82/82 CI | [Test output](TEST_OUTPUT.txt) |
+| Web interface | Implemented, five-page production build passes | Read-only browser pass at desktop and mobile widths; no wallet transaction; does not surface wrapper/pool |
+| Automated tests | 91/91 default and 91/91 CI | [Test output](TEST_OUTPUT.txt) |
 | Repository consistency checks | Pass | `scripts/static_validate.py`; GitHub Actions workflow configured |
 | Audit | **Not delivered** | Do not claim otherwise |
-| Organic demand | **Not delivered** | Buyer is a generated demo account |
+| Organic demand | **Not delivered** | Buyer and external account are generated demo accounts; pool is deployer-seeded |
 | Trove closure | **Not demonstrated** | Current MUSD shortfall |
 | Main-series expiry/finalization | **Not reached** | Expiry 2026-11-24 |
-| MEZO governance-token integration | **Not delivered** | MUSD and Mezo credit only |
+| MEZO governance-token integration | **Not delivered** | MUSD, Mezo credit, and Mezo Pools only |
 
 ---
 
@@ -86,6 +95,10 @@ infrastructure are load-bearing:
    `0x7b7C000000000000000000000000000000000000` to the writer and receives MUSD.
 4. **Mezo's price feed is read live.** The vault checks BTC price and the trove ICR
    when opening and adjusting the trove.
+5. **Mezo Pools is the external venue.** A wrapper/MUSD volatile pool was created through
+   the Mezo Pools Basic PoolFactory and traded through the Basic Router. That is what makes
+   the composability demonstration an external integration rather than a Roster-only
+   wrapper.
 
 What is **not** integrated:
 
@@ -95,9 +108,11 @@ What is **not** integrated:
 - No Mezo bridge logic.
 - No keeper network.
 - No premium auction or market-based premium discovery.
+- The app does not surface the wrapper or Mezo Pools pool.
 
 If a rubric requires MEZO-token usage specifically, this submission does **not**
-satisfy that requirement. It does use Mezo credit infrastructure and Mezo assets.
+satisfy that requirement. It does use Mezo credit infrastructure, Mezo assets, and a
+Mezo Pools venue.
 
 ---
 
@@ -227,29 +242,60 @@ Important separation:
 - the **trove debt** is a Mezo obligation of the vault owner;
 - the series reserve does **not** automatically repay the trove;
 - closing the trove does **not** automatically close the series;
-- native BTC collateral and ERC-20 BTC exercise proceeds are separate assets.
+- native BTC trove collateral and liquid ERC-20 BTC exercise proceeds are separate
+  accounting buckets; trove collateral is locked.
+
+### 4.8 Position wrapper and Mezo Pools pool
+
+The series token has `decimals() == 0` and protocol-specific transfer restrictions.
+`RosterPositionWrapper` is a separate, unowned adapter:
+
+- `deposit(lots)` pulls series lots and mints `lots * 1e18` wrapper units;
+- `withdraw(wrapperAmount)` burns whole-lot multiples and returns series lots;
+- `exercise(wrapperAmount)` burns whole-lot multiples, pulls `lots * 1e12` ERC-20 BTC
+  from the caller, calls `series.exercise(lots)`, and forwards the MUSD payout.
+
+`UNIT = 1e18`. The wrapper holds series positions 1:1 and does not mint series positions,
+change terms, or create leverage. It is **not** collateral for the trove, is **not**
+redeemable for series collateral or native BTC, and has no owner, pause, upgrade, fee, or
+rescue function. `deposit`, `withdraw`, and `exercise` are blocked after series expiry;
+wrapper transfers remain open but wrapper tokens are worthless after expiry. Fractional
+wrapper balances can be transferred but not settled. Series tokens sent directly to the
+wrapper are uncredited.
+
+A live Mezo Pools volatile pool at
+`0xED305fEF4c11f95dAe1d144e78B2B62be50965F2` holds wrapper tokens against MUSD. It is a
+third-party AMM, not a Roster market. It was seeded with 15 actual lots and 0.03 MUSD by
+the deployer. The AMM cannot call `wrapper.exercise()`; pool-held lots must be sold to an
+address that can deliver ERC-20 BTC and exercise before expiry.
 
 ---
 
 ## 5. Native BTC vs ERC-20 BTC
 
-This distinction is load-bearing:
+This distinction is about where BTC sits, not two independently issued BTC tokens:
 
-| Asset | Where it lives | What it does |
+| Accounting path | Where it lives | What it does |
 | --- | --- | --- |
-| **Native BTC** | Mezo trove, `msg.value` | Collateral for the MUSD borrow. Not the option settlement asset. |
-| **ERC-20 BTC** | `0x7b7C000000000000000000000000000000000000` | Asset delivered on exercise. Not the trove collateral. |
+| **Native BTC trove collateral** | Mezo trove, `msg.value` | Locked collateral for the MUSD borrow. Not spendable exercise inventory. |
+| **ERC-20 BTC** | `0x7b7C000000000000000000000000000000000000` | Mezo's ERC-20 interface to liquid BTC, delivered on exercise. Not a claim on trove collateral. |
 
 The vault can receive native BTC from Mezo's `ActivePool` or `CollSurplusPool` when
-collateral is withdrawn, a trove is closed, or surplus is claimed. It receives ERC-20
+collateral is withdrawn, a trove is closed, or surplus is claimed. It receives liquid
 BTC only when a holder exercises. It exposes separate functions:
 
-- `withdrawCollateral()` / `closeTrove()` / `claimCollateral()` — native BTC paths;
-- `withdrawBtc(to, amount)` — ERC-20 BTC exercise proceeds.
+- `withdrawCollateral()` / `closeTrove()` / `claimCollateral()` — native BTC collateral
+  paths;
+- `withdrawBtc(to, amount)` — liquid BTC exercise proceeds.
 
-Roster **does not convert** native BTC into ERC-20 BTC. It does not promise that the
-two are interchangeable. A buyer needs ERC-20 BTC to exercise. The writer is blocked
+Roster **does not convert locked trove collateral into exercise inventory** and does not
+use trove collateral to settle exercises. It does not promise that the two accounting
+buckets are interchangeable. A buyer needs liquid BTC to exercise. The writer is blocked
 from exercising.
+
+The wrapper does not change this. It holds series position tokens, not trove collateral
+and not the series MUSD collateral. It gives an external venue a transferable ERC-20
+claim that can be exercised, not a claim on the trove's BTC.
 
 ---
 
@@ -266,6 +312,11 @@ All addresses are on **Mezo testnet, chain ID 31611**.
 | `RosterTroveWriter` | `0x214e2316EAEeE24c1dc5d8433329fFC7544DA331` |
 | `RosterBtcPutSeries` (main) | `0xC23167867baAF830D586598DE0634E26fD895b92` |
 | `RosterBtcPutSeries` (demo) | `0xCC6bEA372b4947D31303FAb5d13C2f984d68FA43` |
+| `RosterPositionWrapper` | `0x4726a021ec380a755EBE883BEb800A5d06723E41` |
+| Mezo Pools Basic PoolFactory | `0x4947243CC818b627A5D06d14C4eCe7398A23Ce1A` |
+| Mezo Pools Basic Router | `0x9a1ff7FE3a0F69959A3fBa1F1e5ee18e1A9CD7E9` |
+| Wrapper/MUSD pool | `0xED305fEF4c11f95dAe1d144e78B2B62be50965F2` |
+| Mezo MUSD/BTC pool (context) | `0xd16A5Df82120ED8D626a1a15232bFcE2366d6AA9` |
 
 ### 6.2 Assets and Mezo protocol
 
@@ -285,9 +336,12 @@ All addresses are on **Mezo testnet, chain ID 31611**.
 | --- | --- |
 | Deployer / vault owner | `0x90356CF97B3BF1749A604d3F89b3DF3602A459E3` |
 | Generated demo buyer | `0x1A1A70AF037123dda8A1B49BA245234f318Dd3b5` |
+| Generated external pool buyer | `0x1Ed24CD690076B70381bEeb2Ce0D3d7F7625Ee3C` |
 
-The buyer key was generated for the demonstration. No private key or `.env` file is
-committed to the repository.
+The buyer and external-account keys were generated for the demonstration. The external
+account had no direct series position; it was funded by the deployer so it could acquire
+wrapper tokens through the Mezo Pools router. It is a functional demonstration account,
+not an independent customer. No private key or `.env` file is committed to the repository.
 
 ### 6.4 Main series terms
 
@@ -301,20 +355,20 @@ committed to the repository.
 | Lot size | `0.000001 BTC` |
 | Expiry | `1795519026` — 2026-11-24 11:17:06 UTC |
 | Initial deposit | `1,500 MUSD` |
-| Current collateral | `1,498 MUSD` after one exercise |
-| Current active lots | `75` |
-| Current reserve | `6 MUSD` |
+| Current collateral | `1,497.92 MUSD` after 26 lots exercised |
+| Current active lots | `74` |
+| Current reserve | `5.92 MUSD` |
 | Current excess | `1,492 MUSD` |
-| Cumulative payouts | `2 MUSD` |
+| Cumulative payouts | `2.08 MUSD` |
 
 ### 6.5 Trove
 
 | Parameter | Value at snapshot |
 | --- | --- |
 | Native BTC collateral | `0.043 BTC` |
-| Trove debt | `2,202.001777260997830208 MUSD` |
-| ICR | `1.569883623935996387` — **156.99%** |
-| Mezo BTC price | `80,392.71 MUSD/BTC` |
+| Trove debt | `2,202.057203102504956752 MUSD` |
+| ICR | `1.568564521549903788` — **156.856%** |
+| Mezo BTC price | `80,327.18147 MUSD/BTC` |
 | Trove status | `1` (active) |
 | Application minimum ICR | `1.5e18` — 150% |
 | Mezo liquidation MCR | 110% |
@@ -346,6 +400,7 @@ All transactions below have status `1` on Mezo testnet. Explorer path:
 | --- | --- |
 | Vault withdraws 100 idle MUSD | `0x42382fc32c88c42c7f16d8039f8bd7ea677d9575492ea1dc26d9b98fa3e122b1` |
 | Deployer funds buyer with 50 MUSD | `0xfcdedbe4097ef8c5b874ec18535cca1fae9846b5c75419a3a84d0fbbf82c3e8c` |
+| Deployer funds buyer with 0.001 native gas BTC | `0x430568bca841c1f3cb0514b888831dbadc614256672cc2d4ab16b8a56db6007a` |
 | Deployer funds buyer with 0.001 ERC-20 BTC | `0x7955e79d23d2490e008a4ef92dcf95cdc4db63b8780bc987c3dd62f470f9e54a` |
 | Buyer approves MUSD to series | `0x21a70bfcc088cfbae46bba0e1856b28527f7a8e044fb8c78223562e27f229a63` |
 | Buyer purchases 100 lots (0.1 MUSD premium) | `0xe267876b92c517fd0f12f52b8f3935f683bdca6eda8b832c1837bc11e14c7186` |
@@ -378,7 +433,28 @@ After `expire()`:
 - `totalSupply()` remains `10` (frozen, worthless tokens);
 - `premium_balance_raw = 0.01 MUSD` remains withdrawable by the EOA writer.
 
-### 7.4 What the evidence proves
+### 7.4 Wrapper, Mezo Pools, and external settlement
+
+The wrapper and pool were added after the original lifecycle. All transactions returned
+status `1`; the full ledger is in [`COMPOSABILITY.md`](COMPOSABILITY.md).
+
+| Step | Transaction |
+| --- | --- |
+| Deploy wrapper | `0xe6e4b8c60ac5c8cd2c6f03ed541c82a5af8af42e0f45e1c3b272a956b5b297e7` |
+| Approve and deposit 10 lots | `0x4d2cf5c3eff0f19deb0d5f714f06a30dc4d9e32901502f8cd63019dde0608741`, `0x596fcecc54e2de075eb84efcb0a3f478d0e484344bde89878a8dc849e8087728` |
+| Create Mezo Pools pool | `0xa5ef82750d15bfb89e2db3cd99e2f65c4c044131fbfce8a1c00aba99f470c3d8` |
+| Add 5 lots + 0.01 MUSD | `0xcd453d9521f628f10b3c508a903754fcf06c3f05e30800d06a9b8413d0d39e6d` |
+| Deposit 10 more lots; add 10 + 0.02 MUSD | `0x9da7db90d7496b5c948840a2fbdf4a9d4f8c6c523733ae59301bf53f4b153bc3`, `0xc971c780d6bdb91f81988faf81f662eaeb075b0bdfa9e7277bfedbd39da26bcd` |
+| External account swaps 0.00215 MUSD for wrapper | `0xf996972556c8c11a49bf2a3857c38631dc69a313e584d97636bb424fa10e5cd1` |
+| External account exercises 1 lot | `0xf9376c6eafd76fbaeb96b1536814fad60c84e9f888b9aecae2af6c5e7fd4bab7` |
+
+The external account received `1.002735998536819336` wrapper units, burned `1e18` through
+`exercise()`, delivered `0.000001` ERC-20 BTC, and received `0.08` MUSD. The series moved
+from 75 to 74 active lots, collateral from 1,498 to 1,497.92 MUSD, and cumulative payouts
+from 2 to 2.08 MUSD. The wrapper ended at `19` lots and `19e18` supply, still 1:1 backed.
+The pool ended with `13.997264001463180664` wrapper lots and `0.03214914` MUSD.
+
+### 7.5 What the evidence proves
 
 The live transactions prove that:
 
@@ -391,11 +467,16 @@ The live transactions prove that:
 - a holder can exercise by delivering ERC-20 BTC and receive the exact strike;
 - the vault can withdraw premium;
 - a series can expire and release residual collateral;
-- position tokens remain frozen after expiry.
+- position tokens remain frozen after expiry;
+- a standard wrapper can hold actual series lots 1:1 and settle them through the series;
+- a Mezo Pools pool can hold and transfer the wrapper against MUSD;
+- a generated external account with no direct series position can acquire wrapper
+  exposure through the Mezo router and exercise one lot.
 
 They do **not** prove that the protocol is safe, that demand exists, that the trove can
-be closed with current balances, or that the main series can be finalized before its
-maturity. They do not prove that native BTC and ERC-20 BTC are convertible.
+be closed with current balances, that the main series can be finalized before its
+maturity, that native BTC and ERC-20 BTC are convertible, or that the wrapper pool is
+deep, organic, or able to exercise its own positions.
 
 ---
 
@@ -456,7 +537,20 @@ can send the release to the vault, and the owner can still forward it exactly on
 `closeTrove()` preserves the reserved amount when pulling the owner's repayment
 shortfall.
 
-### 8.4 Token assumptions
+### 8.4 Wrapper invariants
+
+```text
+wrapper.totalSupply()    = wrapper.underlyingLots() * 1e18
+wrapper.underlyingLots() = series lots deposited through deposit()
+```
+
+`deposit()` increments `underlyingLots` and mints `lots * 1e18`; `withdraw()` and
+`exercise()` decrement both by a whole-lot amount. `exercise()` also burns the
+corresponding series position. Direct series-token transfers to the wrapper are not
+credited and can make the wrapper's token balance exceed `underlyingLots`; there is no
+rescue path.
+
+### 8.5 Token assumptions
 
 The contracts assume:
 
@@ -485,28 +579,37 @@ The contracts assume:
 - Vault reserves already-released series proceeds during `closeTrove()`.
 - Factory registration check in the order book.
 - Immutable series terms; no owner, pause, upgrade, or rescue function.
+- Wrapper uses `nonReentrant`, exact-balance checks, and whole-lot validation.
+- Wrapper `exercise()` forwards the exact MUSD received from the series.
+- Wrapper has no owner, pause, upgrade, fee, or rescue function.
 
 ### 9.2 Known risks and limitations
 
-- **No audit.** No independent security review or formal verification.
-- **No organic demand.** The buyer is a generated account.
+- **No audit.** No independent security review or formal verification, including the
+  wrapper and Mezo Pools integration.
+- **No organic demand.** The buyer and external account are generated accounts.
 - **No premium discovery.** The writer sets a fixed premium.
-- **Trove liquidation risk.** 0.043 native BTC backs 2,202 MUSD of debt at 156.99%
+- **Trove liquidation risk.** 0.043 native BTC backs 2,202.06 MUSD of debt at 156.856%
   ICR. A BTC price fall or debt rise can push the trove toward the 110% MCR.
 - **Trove close is blocked.** Current MUSD is insufficient to repay the debt.
-- **Series reserve is not trove collateral.** The 1,498 MUSD in the series does not
-  automatically repay the trove.
+- **Series reserve is not trove collateral.** The 1,497.92 MUSD in the series does not
+  automatically repay the trove, and the wrapper cannot repay it either.
 - **No main expiry yet.** Main series matures 2026-11-24.
 - **No keeper.** Expiry is lazy and manual; holders must exercise themselves.
 - **Order-book escrow risk.** Lots listed at expiry cannot be recovered.
 - **Direct transfers are stranded.** Unsolicited MUSD/BTC is not credited and has no
-  rescue path.
+  rescue path; direct series-token transfers to the wrapper are also uncredited.
 - **Writer restriction is not Sybil resistance.** A writer-controlled alternate address
   can buy and exercise.
-- **Two BTC assets are not convertible through Roster.**
+- **Locked trove collateral is not convertible through Roster.**
+- **Wrapper/pool risk.** The pool is deployer-seeded and thin; the deployer holds
+  essentially all LP supply and can remove it. The AMM cannot exercise; pool-held lots
+  must be sold before expiry. The wrapper cannot settle after expiry, and fractional
+  balances cannot be withdrawn or exercised.
 - **App not wallet-tested.** The five-page production build passes and a read-only
   browser pass at desktop/mobile widths is recorded with screenshots, but no wallet
-  transaction has been sent through the UI and there is no automated E2E suite.
+  transaction has been sent through the UI and there is no automated E2E suite. The app
+  does not surface the wrapper or pool.
 
 ---
 
@@ -515,8 +618,8 @@ The contracts assume:
 ```bash
 forge fmt --check          # exit 0
 forge build                # succeeds; lint warnings only
-forge test -vvv            # 82 passed, 0 failed
-FOUNDRY_PROFILE=ci forge test   # 82 passed, 0 failed
+forge test -vvv            # 91 passed, 0 failed
+FOUNDRY_PROFILE=ci forge test   # 91 passed, 0 failed
 ```
 
 | Suite | Tests |
@@ -525,8 +628,9 @@ FOUNDRY_PROFILE=ci forge test   # 82 passed, 0 failed
 | `RosterTroveWriterTest` | 23 |
 | `RosterBtcPutSeriesTest` | 36 |
 | `RosterOrderBookTest` | 13 |
+| `RosterPositionWrapperTest` | 9 |
 | `SeriesInvariantTest` | 6 invariants |
-| **Total** | **82** |
+| **Total** | **91** |
 
 The CI profile uses 5,000 fuzz runs and 512 invariant runs at depth 100. The invariant
 handler covers deposit, purchase, exercise, transfer, approval, `transferFrom`, premium
@@ -541,6 +645,9 @@ See [`TEST_PLAN.md`](TEST_PLAN.md) and [`TEST_OUTPUT.txt`](TEST_OUTPUT.txt).
   Foundry/revm (`EvmError: NotActivated`), so live testnet transactions were used for the
   BTC path;
 - no liquidation, redemption, or multi-block interest simulation against Mezo;
+- no local fork test of Mezo Pools or the live wrapper/MUSD pool; the composability path
+  was demonstrated on testnet, not reproduced in Foundry;
+- the wrapper tests use local mocks and do not exercise adversarial AMM callbacks;
 - no load, griefing, or economic-security analysis;
 - no adversarial production token beyond local mocks.
 
@@ -575,11 +682,15 @@ Shared behavior includes:
 approximately **01:15 and 01:25 UTC**, all five pages loaded live RPC data in headless
 Chrome at 1440px and 390px emulation, with no app exceptions and no horizontal overflow.
 Screenshots are in [`screenshots/`](screenshots/). The check was **read-only**: no wallet
-was connected and no transaction was signed or broadcast through the UI.
+was connected and no transaction was signed or broadcast through the UI. **That pass
+predates the wrapper and Mezo Pools work**, so its observed `75` active lots and
+`1,498 MUSD` collateral are historical, not current.
 
 The app is read-only without a wallet. It reads the public Mezo RPC directly; there is
 no backend, database, account system, custody, or analytics service. Mezo's public RPC
 caps `eth_getLogs` at 10,000 blocks, so the activity feed scans in 9,000-block windows.
+The app does **not** currently surface the position wrapper or the Mezo Pools pool; that
+integration is verified through `cast` and the explorer.
 
 Do not describe the app as finished, wallet-tested, transaction-tested, hosted, or fully
 validated. The remaining app gap is wallet integration testing, not the read-only build.
@@ -610,6 +721,15 @@ cast call 0x214e2316EAEeE24c1dc5d8433329fFC7544DA331 \
 cast call 0xc97B2fe5ba7e68ed7b52a657a137Cf636149cd25 \
   "getListing(uint256)((address,address,uint256,uint256,bool))" 1 --rpc-url "$RPC"
 
+cast call 0x4726a021ec380a755EBE883BEb800A5d06723E41 \
+  "totalSupply()(uint256)" --rpc-url "$RPC"
+cast call 0x4726a021ec380a755EBE883BEb800A5d06723E41 \
+  "underlyingLots()(uint256)" --rpc-url "$RPC"
+cast call 0xED305fEF4c11f95dAe1d144e78B2B62be50965F2 \
+  "getReserves()(uint256,uint256,uint256)" --rpc-url "$RPC"
+cast call 0x4947243CC818b627A5D06d14C4eCe7398A23Ce1A \
+  "isPool(address)(bool)" 0xED305fEF4c11f95dAe1d144e78B2B62be50965F2 --rpc-url "$RPC"
+
 cast call 0xCC6bEA372b4947D31303FAb5d13C2f984d68FA43 \
   "expired()(bool)" --rpc-url "$RPC"
 cast call 0xCC6bEA372b4947D31303FAb5d13C2f984d68FA43 \
@@ -639,27 +759,32 @@ npm run build
 
 What a reviewer can inspect today:
 
-1. Open the main series on the explorer and verify 75 active lots, 1,498 MUSD
+1. Open the main series on the explorer and verify 74 active lots, 1,497.92 MUSD
    collateral, and the 80,000 MUSD strike.
-2. Open the vault and verify the trove: 0.043 native BTC, ~2,202 MUSD debt, ~157% ICR.
+2. Open the vault and verify the trove: 0.043 native BTC, ~2,202 MUSD debt, ~156.9% ICR.
 3. Open the order book and verify listing `1`: 25 lots at 0.002 MUSD per lot, seller is
    the generated buyer.
 4. Inspect the purchase, fill, exercise, and premium-withdrawal transactions.
 5. Open the demo series and verify `expired = true`, zero collateral, and a 20 MUSD
    expiry release.
-6. Run the 82-test suite and the five-page app production build.
-7. Inspect the read-only desktop and mobile screenshots in
+6. Open the wrapper and the wrapper/MUSD pool, and inspect the external swap and exercise
+   transactions in [`COMPOSABILITY.md`](COMPOSABILITY.md).
+7. Run the 91-test suite and the five-page app production build.
+8. Inspect the read-only desktop and mobile screenshots in
    [`screenshots/`](screenshots/).
-8. Read the limitations. Do not treat the demo buyer as demand.
+9. Read the limitations. Do not treat the demo buyer or the external account as demand.
 
 What cannot be demonstrated today:
 
 - closing the trove with current balances;
 - main-series expiry or finalization;
 - organic demand or premium discovery;
+- deep, organic wrapper/MUSD liquidity, or independent demand for the wrapper;
+- pool-side exercise of wrapper positions;
+- wrapper settlement after expiry (the wrapper blocks it);
 - a wallet transaction signed and broadcast through the app;
 - an automated browser E2E suite or hosted app;
-- an audit.
+- an audit of Roster or the Mezo Pools integration.
 
 ---
 
@@ -671,11 +796,13 @@ src/
   RosterSeriesFactory.sol    permissionless series registry
   RosterOrderBook.sol        escrowed secondary asks
   RosterTroveWriter.sol      per-series Mezo trove vault
+  RosterPositionWrapper.sol  18-decimal ERC-20 wrapper over series lots
   MockERC20.sol              local exact-transfer test token
   TestERC20Helpers.sol       adversarial callback/fee-on-transfer tokens
 test/
   RosterBtcPutSeries.t.sol   36 core tests
   ProtocolExtensions.t.sol   40 factory/book/vault tests
+  RosterPositionWrapper.t.sol 9 wrapper tests
   SeriesInvariant.t.sol      6 invariants
   TestBase.sol
 script/
@@ -684,6 +811,7 @@ script/
   CheckMezoAssets.s.sol      asset/protocol preflight
 docs/
   SUBMISSION.md              this narrative
+  COMPOSABILITY.md           wrapper, Mezo Pools, external-account evidence
   VALIDATION_STATUS.md       validation and live-state status
   DEPLOYMENT_RECORD.md       addresses, hashes, terms, snapshots
   deployment.json            machine-readable deployment snapshot
@@ -709,6 +837,11 @@ Do **not** claim any of the following:
 - that the premium is market-discovered;
 - that the order book guarantees liquidity;
 - that native BTC and ERC-20 BTC are convertible through Roster;
+- that the wrapper/MUSD pool is deep, organic, permanent, or a Roster market;
+- that the wrapper is collateral, is redeemable for series collateral or native BTC, or
+  can settle after expiry;
+- that the pool can exercise its own positions;
+- that the app supports the wrapper or Mezo Pools pool;
 - that the app is finished, wallet-tested, transaction-tested, hosted, or fully
   validated; a read-only browser pass with screenshots exists, but no wallet transaction
   has been sent through the UI;
@@ -723,9 +856,11 @@ Do **not** claim any of the following:
 ## 16. Strongest accurate description
 
 > Roster is a working Mezo testnet mechanism with real MUSD, a real trove, a live
-> secondary ask book, verified issuance, purchase, fill, exercise, premium, and expiry
+> secondary ask book, a wrapper/MUSD Mezo Pools market over actual series positions,
+> verified issuance, purchase, fill, exercise, premium, expiry, and external settlement
 > transactions, and a five-page app with read-only desktop/mobile browser evidence. It
 > is not audited, has no organic demand, has not closed its trove, has not reached
-> main-series maturity, and has not had a wallet transaction performed through the UI.
+> main-series maturity, has no organic wrapper liquidity, and has not had a wallet
+> transaction performed through the UI.
 
 Anything stronger than that is not supported by the current evidence.

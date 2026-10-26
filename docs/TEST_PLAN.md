@@ -1,7 +1,7 @@
 # Test Plan and Coverage
 
-**Last executed:** 2026-10-25
-**Result:** 82/82 tests pass in both the default and CI profiles
+**Last executed:** 2026-10-26
+**Result:** 91/91 tests pass in both the default and CI profiles
 **Toolchain:** Foundry 1.7.1, solc 0.8.24, `via_ir = true`, optimizer 200 runs,
 EVM `london`
 
@@ -17,7 +17,7 @@ See [`TEST_OUTPUT.txt`](TEST_OUTPUT.txt) for the recorded command output and
 
 ## 1. Scope
 
-The suite covers four contracts and their interactions:
+The suite covers five contracts and their interactions:
 
 | Contract | Suite | Tests |
 | --- | --- | --- |
@@ -25,8 +25,9 @@ The suite covers four contracts and their interactions:
 | `RosterTroveWriter` | `RosterTroveWriterTest` | 23 |
 | `RosterOrderBook` | `RosterOrderBookTest` | 13 |
 | `RosterSeriesFactory` | `RosterSeriesFactoryTest` | 4 |
+| `RosterPositionWrapper` | `RosterPositionWrapperTest` | 9 |
 | Invariants | `SeriesInvariantTest` | 6 |
-| **Total** | | **82** |
+| **Total** | | **91** |
 
 The suite uses local mocks for MUSD and ERC-20 BTC. It does not execute against a
 deployed Mezo fork. The live Mezo path is validated through testnet transactions; see
@@ -92,7 +93,7 @@ forge test --list
 Expected result at the recorded revision:
 
 ```text
-Ran 5 test suites: 82 tests passed, 0 failed, 0 skipped
+Ran 6 test suites: 91 tests passed, 0 failed, 0 skipped
 ```
 
 ---
@@ -260,7 +261,35 @@ execution time.
 
 ---
 
-## 8. Invariants — `SeriesInvariantTest` (6)
+## 8. Wrapper coverage — `RosterPositionWrapperTest` (9)
+
+`RosterPositionWrapperTest` uses a local series and tokens. It verifies the adapter that
+exposes series lots to external ERC-20 venues.
+
+- `test_deposit_and_withdraw_round_trip` — deposit lots, mint `lots * 1e18`, withdraw, and
+  return the exact series position tokens.
+- `test_deposit_requires_series_approval` — deposit reverts without a series allowance.
+- `test_exercise_requires_btc_approval` — exercise reverts without an ERC-20 BTC allowance.
+- `test_exercise_via_wrapper` — exercise burns whole lots, pulls `lots * 1e12` ERC-20 BTC,
+  calls the series, and forwards the exact MUSD payout.
+- `test_expiry_blocks_settlement_but_not_wrapper_transfers` — after expiry, `deposit`,
+  `withdraw`, and `exercise` revert while wrapper transfers still succeed.
+- `test_non_multiple_and_zero_amounts_revert` — zero and fractional wrapper amounts cannot
+  be withdrawn or exercised.
+- `test_transfer_and_allowance` — wrapper units are standard ERC-20 balances with working
+  approvals and `transferFrom`.
+- `test_underlying_and_supply_stay_in_sync` — `totalSupply == underlyingLots * 1e18`
+  through deposit, withdraw, and exercise.
+- `test_withdraw_to_writer_reverts` — the wrapper cannot return series tokens to the
+  writer, inheriting the series transfer restriction.
+
+The wrapper tests do **not** run against the live Mezo Pools factory, router, or pool.
+That integration was demonstrated on testnet and is recorded in
+[`COMPOSABILITY.md`](COMPOSABILITY.md).
+
+---
+
+## 9. Invariants — `SeriesInvariantTest` (6)
 
 `SeriesInvariant.t.sol` defines six properties:
 
@@ -290,7 +319,7 @@ execution time.
    musd.balanceOf(series) >= collateral_balance_raw + premium_balance_raw
    ```
 
-### 8.1 Handler actions
+### 9.1 Handler actions
 
 The invariant handler fuzzes:
 
@@ -315,7 +344,7 @@ actions.
 
 ---
 
-## 9. What is validated on-chain
+## 10. What is validated on-chain
 
 The test plan is not the only evidence. The live deployment separately validates:
 
@@ -329,19 +358,28 @@ The test plan is not the only evidence. The live deployment separately validates
 - an exercise of 25 lots for 2 MUSD;
 - a 0.1 MUSD premium withdrawal through the vault;
 - a demo expiry release of 20 MUSD;
-- frozen position supply after expiry.
+- frozen position supply after expiry;
+- a wrapper holding 19 actual main-series lots at 1:1 accounting;
+- a Mezo Pools wrapper/MUSD pool created and seeded with 15 lots and 0.03 MUSD;
+- a generated external account swapping MUSD for wrapper and exercising one lot for
+  0.08 MUSD.
 
-See [`DEPLOYMENT_RECORD.md`](DEPLOYMENT_RECORD.md) for hashes and the current snapshot.
+See [`DEPLOYMENT_RECORD.md`](DEPLOYMENT_RECORD.md) for hashes and the current snapshot,
+and [`COMPOSABILITY.md`](COMPOSABILITY.md) for the external-integration ledger.
 
 ---
 
-## 10. What is not covered
+## 11. What is not covered
 
 - **No audit or formal verification.** Tests cannot prove absence of all
   vulnerabilities.
 - **No local Mezo fork execution.** The Mezo ERC-20 BTC token's `decimals()` call
   reverts under local Foundry/revm forks (`EvmError: NotActivated`). The BTC path was
   validated on live testnet instead.
+- **No local fork test of Mezo Pools.** The wrapper/MUSD pool, router, and swap path were
+  demonstrated on testnet, not reproduced in Foundry.
+- **Wrapper tests use local mocks.** They do not exercise adversarial AMM callbacks or a
+  live pool trying to call `exercise()` (the AMM cannot).
 - **No live liquidation or redemption simulation.**
 - **No multi-block interest simulation against Mezo.** Interest is modeled in the
   close-path test but not fuzzed against live protocol state.
@@ -356,7 +394,7 @@ See [`DEPLOYMENT_RECORD.md`](DEPLOYMENT_RECORD.md) for hashes and the current sn
 
 ---
 
-## 11. Pass criteria for future changes
+## 12. Pass criteria for future changes
 
 Before treating a change as safe enough for another testnet deployment:
 

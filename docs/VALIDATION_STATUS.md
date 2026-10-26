@@ -1,22 +1,25 @@
 # Validation Status
 
-**Status as of 2026-10-26 01:25 UTC:** compiled, tested, deployed to Mezo testnet,
+**Status as of 2026-10-26 10:15 UTC:** compiled, tested, deployed to Mezo testnet,
 exercised through primary purchase, secondary fill, physical exercise, premium
 withdrawal, and expiry release on a short-dated demo series. The main series remains
-active. The trove remains open. The five-page web app passed a read-only browser smoke
-test at desktop and mobile widths. No audit has been performed, and no wallet transaction
-has been sent through the UI.
+active. The trove remains open. A position wrapper is live over main-series lots, and a
+deployer-seeded Mezo Pools wrapper/MUSD pool was used by a separate generated account to
+acquire wrapper tokens and exercise one lot. The five-page web app passed a read-only
+browser smoke test at desktop and mobile widths but does not surface the wrapper or pool.
+No audit has been performed, and no wallet transaction has been sent through the UI.
 
-The chain snapshot tables below remain the **2026-10-25 12:11 UTC** snapshot (block
-16,359,943). Debt, interest, ICR, and balances have moved since then; the browser check
-on 2026-10-26 observed approximately 156.4% ICR and 2,202.035 MUSD debt. This file records
-what has actually been validated. It replaces the earlier "compiled and tested locally;
-not yet deployed" status, which is no longer true.
+The chain snapshot below is the **2026-10-26 10:15:56 UTC** snapshot (block 16,379,045).
+Debt, interest, ICR, and balances move. The browser check on 2026-10-26 observed
+approximately 156.4% ICR and 2,202.035 MUSD debt at its earlier block; those values are
+historical. This file records what has actually been validated. It replaces the earlier
+"compiled and tested locally; not yet deployed" status, which is no longer true.
 
 Canonical sources:
 
 - [`../README.md`](../README.md) — primary project record.
 - [`DEPLOYMENT_RECORD.md`](DEPLOYMENT_RECORD.md) — addresses, hashes, terms, snapshot.
+- [`COMPOSABILITY.md`](COMPOSABILITY.md) — wrapper, Mezo Pools, and external-account record.
 - [`TEST_OUTPUT.txt`](TEST_OUTPUT.txt) — recorded command output.
 - [`SUBMISSION.md`](SUBMISSION.md) — submission narrative.
 - [`WEB_APP.md`](WEB_APP.md) — full web-app inventory.
@@ -29,24 +32,28 @@ Canonical sources:
 | --- | --- | --- |
 | Formatting | Pass | `forge fmt --check` exit 0 |
 | Compilation | Pass | `forge build`, lint warnings only |
-| Default test suite | **82/82 pass** | `forge test -vvv` |
-| CI test profile | **82/82 pass** | `FOUNDRY_PROFILE=ci forge test` |
+| Default test suite | **91/91 pass** | `forge test -vvv` |
+| CI test profile | **91/91 pass** | `FOUNDRY_PROFILE=ci forge test` |
 | Static consistency checks | Pass | `python3 scripts/static_validate.py` |
-| Mezo testnet deployment | **Live** | Five contracts with code |
-| Main series active | **Yes** | 75 active lots, 1,498 MUSD collateral |
+| Mezo testnet deployment | **Live** | Six Roster contracts with code |
+| Main series active | **Yes** | 74 active lots, 1,497.92 MUSD collateral |
 | Primary purchase | **Live** | 100 lots purchased |
 | Secondary listing/fill | **Live** | 50 listed, 25 filled |
-| Physical exercise | **Live** | 25 lots for 2 MUSD |
+| Physical exercise | **Live** | 26 lots for 2.08 MUSD total |
 | Premium withdrawal | **Live** | 0.1 MUSD forwarded |
 | Demo expiry release | **Live** | 20 MUSD released |
 | Trove open | **Live** | 0.043 native BTC, ~2,202 MUSD debt |
 | Trove close | **Not demonstrated** | MUSD shortfall |
 | Main expiry/finalize | **Not reached** | 2026-11-24 |
+| Position wrapper | **Live** | 19 lots / 19e18 supply, 1:1 backed |
+| Wrapper/MUSD Mezo Pools pool | **Live, deployer-seeded** | 15-lot initial seed; external swap/exercise executed |
+| External position composability | **Demonstrated** | Generated external account swapped and exercised 1 lot |
 | Web app production build | **Pass** | Five-page Vite build |
-| Web app read-only browser pass | **Pass** | Five pages, 1440px and 390px; screenshots in `docs/screenshots/` |
+| Web app read-only browser pass | **Pass** | Five pages, 1440px and 390px; screenshots in `docs/screenshots/`; predates wrapper/pool |
 | Web app wallet transaction | **Not performed** | No wallet connected; no transaction through the UI |
+| Web app wrapper/pool support | **Not implemented** | Verified via `cast` and explorer, not UI |
 | Audit | **None** | Do not claim one |
-| Organic demand | **None observed** | Buyer is generated |
+| Organic demand | **None observed** | Buyer and external account are generated; pool is deployer-seeded |
 
 ---
 
@@ -85,17 +92,20 @@ $ python3 scripts/static_validate.py
 PASS: required files and relative imports resolve
 PASS: 36 unique unit-test functions found
 PASS: 6 unique invariant functions found
+PASS: 9 unique wrapper-test functions found
 PASS: required regression test names present
 PASS: env keys are consistent across sample config and scripts
 PASS: sample config defaults to the verified Mezo MUSD and ERC-20 BTC addresses
 PASS: CI profile and compile/default/expanded test workflow are configured
 PASS: deployment script contains chain, writer, code, and decimal preflight checks
+PASS: wrapper source, wrapper test suite, and wrapper test count are present
 PASS: documented strike/premium arithmetic is consistent
 ```
 
 This is a static repository check only. It does not compile Solidity or execute EVM
 tests. The GitHub Actions workflow at `.github/workflows/test.yml` runs `forge build`,
-the default and CI test profiles, `forge fmt --check`, and this script.
+the default and CI test profiles, `forge fmt --check`, and this script. The workflow has
+been observed passing on GitHub: run `40264693650`.
 
 ### 2.4 Default test profile
 
@@ -113,17 +123,20 @@ Suite result: ok. 36 passed; 0 failed; 0 skipped
 Ran 13 tests for test/ProtocolExtensions.t.sol:RosterOrderBookTest
 Suite result: ok. 13 passed; 0 failed; 0 skipped
 
+Ran 9 tests for test/RosterPositionWrapper.t.sol:RosterPositionWrapperTest
+Suite result: ok. 9 passed; 0 failed; 0 skipped
+
 Ran 6 tests for test/SeriesInvariant.t.sol:SeriesInvariantTest
 Suite result: ok. 6 passed; 0 failed; 0 skipped
 
-Ran 5 test suites: 82 tests passed, 0 failed, 0 skipped
+Ran 6 test suites: 91 tests passed, 0 failed, 0 skipped
 ```
 
 ### 2.5 CI profile
 
 ```text
 $ FOUNDRY_PROFILE=ci forge test
-Ran 5 test suites: 82 tests passed, 0 failed, 0 skipped
+Ran 6 test suites: 91 tests passed, 0 failed, 0 skipped
 ```
 
 Profile parameters:
@@ -146,8 +159,9 @@ fail_on_revert:          false
 | `RosterTroveWriterTest` | 23 |
 | `RosterOrderBookTest` | 13 |
 | `RosterSeriesFactoryTest` | 4 |
+| `RosterPositionWrapperTest` | 9 |
 | `SeriesInvariantTest` | 6 invariants |
-| **Total** | **82** |
+| **Total** | **91** |
 
 The extension suite also includes a large number of shared assertions inside those
 tests. The count above is Foundry's test count, not a line-coverage number.
@@ -180,8 +194,9 @@ application with no backend.
 
 ### 3.1 Production build
 
-The app is a five-page Vite build: landing, trade, secondary, vault, and activity. Final
-build output at the browser check:
+The app is a five-page Vite build: landing, trade, secondary, vault, and activity. This
+build was re-run after the disclosure-copy correction. The browser pass used the earlier
+build (`index.html` 32.68 kB, `vault.html` 18.71 kB).
 
 ```text
 $ cd app
@@ -192,11 +207,11 @@ vite v7.3.7 building client environment for production...
 dist/activity.html              11.72 kB │ gzip:  3.41 kB
 dist/secondary.html             14.60 kB │ gzip:  4.02 kB
 dist/trade.html                 16.77 kB │ gzip:  4.29 kB
-dist/vault.html                 18.71 kB │ gzip:  4.79 kB
-dist/index.html                 32.68 kB │ gzip:  7.39 kB
-dist/assets/main-uU5dssex.css   42.88 kB │ gzip:  8.54 kB
+dist/vault.html                 18.75 kB │ gzip:  4.80 kB
+dist/index.html                 32.82 kB │ gzip:  7.40 kB
+dist/assets/main-uU5dssex.css   42.88 kB │ gzip:   8.54 kB
 dist/assets/main-3VKCUrVU.js   303.59 kB │ gzip: 109.60 kB
-✓ built in 2.51s
+✓ built in 1.56s
 ```
 
 - `app/src/main.js` is page-aware via `body[data-page]` and populates only the sections
@@ -209,7 +224,8 @@ dist/assets/main-3VKCUrVU.js   303.59 kB │ gzip: 109.60 kB
 
 On **2026-10-26** between approximately **01:15 and 01:25 UTC**, the production build was
 served at `http://127.0.0.1:4173` and loaded in headless Chrome against the live Mezo RPC.
-No wallet extension was installed and no transaction was signed or broadcast.
+No wallet extension was installed and no transaction was signed or broadcast. **This pass
+predates the wrapper and Mezo Pools work**; the live values below are historical.
 
 | Check | Result |
 | --- | --- |
@@ -239,6 +255,10 @@ Screenshots are committed in [`screenshots/`](screenshots/):
 - No wallet signature, confirmation, or error state recorded.
 - No automated end-to-end test suite for the app.
 - No production hosting/deployment.
+- The app does not surface the position wrapper or the Mezo Pools pool; that integration
+  is verified with `cast` and the explorer.
+- The browser pass predates the wrapper/pool and the latest series state (`74` lots,
+  `1,497.92` MUSD); its `75` / `1,498` values are historical.
 
 Do **not** describe the app as fully validated, wallet-tested, or finished. It is
 implemented, builds, and has a read-only browser pass with screenshots; wallet
@@ -256,7 +276,7 @@ RPC:     https://rpc.test.mezo.org
 explorer: https://explorer.test.mezo.org
 ```
 
-All five deployed addresses have non-empty bytecode:
+All six Roster-deployed addresses have non-empty bytecode:
 
 | Contract | Address | Code |
 | --- | --- | --- |
@@ -265,6 +285,15 @@ All five deployed addresses have non-empty bytecode:
 | Trove vault | `0x214e2316EAEeE24c1dc5d8433329fFC7544DA331` | present |
 | Main series | `0xC23167867baAF830D586598DE0634E26fD895b92` | present |
 | Demo series | `0xCC6bEA372b4947D31303FAb5d13C2f984d68FA43` | present |
+| Position wrapper | `0x4726a021ec380a755EBE883BEb800A5d06723E41` | present |
+
+External Mezo Pools contracts used by the composability demo:
+
+| Contract | Address | Code |
+| --- | --- | --- |
+| Basic PoolFactory | `0x4947243CC818b627A5D06d14C4eCe7398A23Ce1A` | present |
+| Basic Router | `0x9a1ff7FE3a0F69959A3fBa1F1e5ee18e1A9CD7E9` | present |
+| Wrapper/MUSD pool | `0xED305fEF4c11f95dAe1d144e78B2B62be50965F2` | present; recognized by factory |
 
 ### 4.2 Assets and protocol addresses
 
@@ -280,7 +309,12 @@ All five deployed addresses have non-empty bytecode:
 - `collSurplusPool()` returns `0xB4C35747c26E4aB5F1a7CdC7E875B5946eFa6fa9`.
 - `BorrowerOperations.getBorrowingFee(2,000e18)` returned `2e18` at the observed
   0.1% rate.
-- PriceFeed `fetchPrice()` returned `80,392.71e18` at the snapshot.
+- PriceFeed `fetchPrice()` returned `80,327.18147e18` at the snapshot.
+- Wrapper series: main series; `UNIT = 1e18`; `decimals() == 18`; `isLive() == true`.
+- Wrapper `totalSupply() == 19e18`, `underlyingLots() == 19`.
+- Mezo Pools `getPool(wrapper, MUSD, false)` returns the pool; `isPool(pool) == true`.
+- Pool `token0 == MUSD`, `token1 == wrapper`, `stable == false`.
+- `factory.allPoolsLength() == 38` at the snapshot.
 
 The Mezo BTC token's `decimals()` call reverts under local Foundry/revm forks
 (`EvmError: NotActivated`) while live `cast call` and transactions succeed. This is why
@@ -303,6 +337,7 @@ the final BTC path was validated on live testnet rather than by a local fork.
 | --- | --- | --- | --- |
 | Withdraw 100 idle MUSD | `0x42382fc32c88c42c7f16d8039f8bd7ea677d9575492ea1dc26d9b98fa3e122b1` | 16,359,394 | 1 |
 | Fund buyer 50 MUSD | `0xfcdedbe4097ef8c5b874ec18535cca1fae9846b5c75419a3a84d0fbbf82c3e8c` | 16,359,397 | 1 |
+| Fund buyer 0.001 native gas BTC | `0x430568bca841c1f3cb0514b888831dbadc614256672cc2d4ab16b8a56db6007a` | 16,359,401 | 1 |
 | Fund buyer 0.001 ERC-20 BTC | `0x7955e79d23d2490e008a4ef92dcf95cdc4db63b8780bc987c3dd62f470f9e54a` | 16,359,411 | 1 |
 | Buyer approves MUSD | `0x21a70bfcc088cfbae46bba0e1856b28527f7a8e044fb8c78223562e27f229a63` | 16,359,416 | 1 |
 | Buyer purchases 100 lots | `0xe267876b92c517fd0f12f52b8f3935f683bdca6eda8b832c1837bc11e14c7186` | 16,359,419 | 1 |
@@ -318,29 +353,45 @@ the final BTC path was validated on live testnet rather than by a local fork.
 | Demo buyer purchases 10 lots | `0xafa7a0e6227dd3d2d5eca8cd16e072a9443331a8d5f86cdc4480b568c6ba3815` | 16,359,527 | 1 |
 | Demo `expire()` | `0xdc1b099d2f1a6256de62fdb28698167728416a9fb9df895ac19062d81eb5dd8d` | 16,359,832 | 1 |
 
+### 4.5 Wrapper and external composability receipts
+
+| Step | Transaction | Block | Status |
+| --- | --- | --- | --- |
+| Deploy wrapper | `0xe6e4b8c60ac5c8cd2c6f03ed541c82a5af8af42e0f45e1c3b272a956b5b297e7` | 16,378,802 | 1 |
+| Approve + deposit first 10 lots | `0x4d2cf5c3eff0f19deb0d5f714f06a30dc4d9e32901502f8cd63019dde0608741`, `0x596fcecc54e2de075eb84efcb0a3f478d0e484344bde89878a8dc849e8087728` | 16,378,810 / 16,378,811 | 1 |
+| Create Mezo Pools pool | `0xa5ef82750d15bfb89e2db3cd99e2f65c4c044131fbfce8a1c00aba99f470c3d8` | 16,378,881 | 1 |
+| Add 5 lots + 0.01 MUSD | `0xcd453d9521f628f10b3c508a903754fcf06c3f05e30800d06a9b8413d0d39e6d` | 16,378,904 | 1 |
+| Deposit 10 more lots + add 10 + 0.02 MUSD | `0x9da7db90d7496b5c948840a2fbdf4a9d4f8c6c523733ae59301bf53f4b153bc3`, `0xc971c780d6bdb91f81988faf81f662eaeb075b0bdfa9e7277bfedbd39da26bcd` | 16,378,940 / 16,378,953 | 1 |
+| External swap 0.00215 MUSD → wrapper | `0xf996972556c8c11a49bf2a3857c38631dc69a313e584d97636bb424fa10e5cd1` | 16,378,984 | 1 |
+| External exercise 1 lot | `0xf9376c6eafd76fbaeb96b1536814fad60c84e9f888b9aecae2af6c5e7fd4bab7` | 16,378,991 | 1 |
+
+The external account received `1.002735998536819336` wrapper units, exercised `1e18`,
+delivered `0.000001` ERC-20 BTC, and received `0.08` MUSD. The wrapper stayed 1:1 backed at
+19 lots. Full approvals and funding are in [`COMPOSABILITY.md`](COMPOSABILITY.md).
+
 ---
 
 ## 5. Live state snapshot
 
-Snapshot taken at **block 16,359,943**, **2026-10-25 12:11:06 UTC**. Values move
+Snapshot taken at **block 16,379,045**, **2026-10-26 10:15:56 UTC**. Values move
 with interest, trading, and exercises.
 
 ### 5.1 Main series
 
 | Field | Value |
 | --- | --- |
-| `active_lots` | `75` |
-| `totalSupply()` | `75` |
-| `collateral_balance_raw` | `1498e18` |
-| `reserved_raw` | `6e18` |
+| `active_lots` | `74` |
+| `totalSupply()` | `74` |
+| `collateral_balance_raw` | `1497.92e18` |
+| `reserved_raw` | `5.92e18` |
 | `excess_raw` | `1492e18` |
 | `total_deposited_raw` | `1500e18` |
-| `total_payouts_raw` | `2e18` |
+| `total_payouts_raw` | `2.08e18` |
 | `expiry_release_raw` | `0` |
 | `premium_balance_raw` | `0` |
 | `expired` | `false` |
 | `expiry` | `1795519026` — 2026-11-24 11:17:06 UTC |
-| Position holders | buyer 25, deployer 25, order-book escrow 25 |
+| Position holders | buyer 25; deployer 5 direct + 5 through wrapper; pool 13.997264001463180664 through wrapper; external 0.002735998536819336 through wrapper; order-book escrow 25 |
 
 ### 5.2 Demo series
 
@@ -376,35 +427,68 @@ remain escrowed.
 | MUSD balance | `400e18` |
 | `idleMUSD()` | `400e18` |
 | `reservedMUSD()` | `0` |
-| ERC-20 BTC held | `0.000025 BTC` |
+| ERC-20 BTC held | `0.000026 BTC` |
 | `premiumForwarded()` | `0.1e18` |
 | `expiryForwarded()` | `0` |
 | `totalDepositedToSeries()` | `1,500e18` |
 | Owner | `0x90356CF97B3BF1749A604d3F89b3DF3602A459E3` |
 | Bound series | main series |
 
-### 5.5 Trove
+### 5.5 Position wrapper
+
+| Field | Value |
+| --- | --- |
+| Address | `0x4726a021ec380a755EBE883BEb800A5d06723E41` |
+| Wrapped series | main series |
+| `UNIT` | `1e18` |
+| `totalSupply()` | `19e18` |
+| `underlyingLots()` | `19` |
+| Series token balance | `19` |
+| `isLive()` | `true` |
+| Deployer balance | `5e18` |
+| Pool balance | `13.997264001463180664e18` |
+| External balance | `0.002735998536819336e18` |
+
+### 5.6 Wrapper/MUSD pool
+
+| Field | Value |
+| --- | --- |
+| Address | `0xED305fEF4c11f95dAe1d144e78B2B62be50965F2` |
+| Symbol | `vAMM-MUSD/wRBTC-PUT` |
+| MUSD reserve | `0.03214914e18` |
+| Wrapper reserve | `13.997264001463180664e18` |
+| Implied marginal price | `0.002296816006088 MUSD` per lot |
+| LP total supply | `670.820393249936907` |
+| Deployer LP balance | `670.820393249935907` |
+| External LP balance | `0` |
+| `factory.isPool(pool)` | `true` |
+
+### 5.7 Trove
 
 | Field | Value |
 | --- | --- |
 | Native BTC collateral | `0.043 BTC` |
-| Trove debt | `2,202.001777260997830208 MUSD` |
-| ICR | `1.569883623935996387` — **156.99%** |
-| Mezo BTC price | `80,392.71 MUSD/BTC` |
+| Trove debt | `2,202.057203102504956752 MUSD` |
+| ICR | `1.568564521549903788` — **156.856%** |
+| Mezo BTC price | `80,327.18147 MUSD/BTC` |
 | Trove status | `1` (active) |
 | Application minimum ICR | `1.5e18` — 150% |
 | Mezo liquidation MCR | 110% |
 | MUSD gas compensation | `200 MUSD` |
 
-### 5.6 Account balances
+### 5.8 Account balances
 
 | Account | MUSD | ERC-20 BTC |
 | --- | --- | --- |
-| Deployer / vault owner | `50.05 MUSD` | `0.004999993948523024 BTC` |
+| Deployer / vault owner | `50.01 MUSD` | `0.004697993136676592 BTC` |
 | Buyer | `51.94 MUSD` | `0.0019749992572 BTC` |
+| External pool buyer | `0.08785 MUSD` | `0.000300999867586176 BTC` |
 
-The deployer MUSD balance includes the 20 MUSD demo expiry release. Native BTC
-balances are separate and are not shown here.
+The deployer MUSD balance includes the 20 MUSD demo expiry release. The external account
+was funded by the deployer with `0.0003` native gas BTC, `0.01 MUSD`, and `0.000002`
+ERC-20 BTC.
+The ERC-20 BTC column is each account's liquid BTC balance through Mezo's ERC-20
+interface. The trove's `0.043` native BTC is locked collateral and is not included.
 
 ---
 
@@ -417,26 +501,29 @@ requested borrow:          2,000 MUSD
 borrowing fee:                 2 MUSD
 MUSD gas compensation:       200 MUSD
 initial trove debt:        2,202 MUSD
-current debt:              2,202.001777260997830208 MUSD
+current debt:              2,202.057203102504956752 MUSD
 close repayment required = debt - 200 gas compensation
-                          = 2,002.001777260997830208 MUSD
+                          = 2,002.057203102504956752 MUSD
 ```
 
-The vault holds `400 MUSD` idle. The owner holds `50.05 MUSD`. Available:
+The vault holds `400 MUSD` idle. The owner holds `50.01 MUSD`. Available:
 
 ```text
-400 + 50.05 = 450.05 MUSD
-shortfall   = 2,002.001777260997830208 - 450.05
-            = 1,551.951777260997830208 MUSD
+400 + 50.01 = 450.01 MUSD
+shortfall   = 2,002.057203102504956752 - 450.01
+            = 1,552.047203102504956752 MUSD
 ```
 
-The series holds `1,498 MUSD` of collateral, but that MUSD belongs to the series
-reserve and is not available to repay the trove while the series is live. Calling
-`closeTrove()` now would revert for insufficient MUSD.
+The series holds `1,497.92 MUSD` of collateral, but that MUSD belongs to the series
+reserve and is not available to repay the trove while the series is live. The wrapper is
+not trove collateral. Calling `closeTrove()` now would revert for insufficient MUSD.
 
-No live DEX route was found for the missing MUSD on Mezo testnet. The documented pool
-`0x52e604c44417233b6CcEDDDc0d640A405Caacefb` had no code at the time of checking.
-Therefore:
+A live Mezo Pools MUSD/BTC pool exists at
+`0xd16A5Df82120ED8D626a1a15232bFcE2366d6AA9` (approximately `102,535.53 MUSD` /
+`1,303.716 BTC`, about `78,648.65 MUSD/BTC` at the snapshot). Selling all of the deployer's
+free `0.004697993136676592` BTC would yield roughly `377.38 MUSD` before fees, still
+leaving a gap above `1,170 MUSD` and no BTC for gas or settlement. The pool is a swap
+route, not a close solution. Therefore:
 
 - **trove closure is not demonstrated**;
 - **do not claim the trove can be closed profitably or at all with current balances**;
@@ -460,6 +547,9 @@ expiry proceeds. The live close is blocked by liquidity, not by missing code.
 - Load, griefing, or economic-security analysis.
 - Organic demand or market-based premium discovery.
 - MEZO governance-token integration.
+- Organic wrapper/MUSD liquidity; the pool is deployer-seeded and thin.
+- Pool-side exercise, or wrapper settlement after expiry.
+- Wrapper/pool support in the web app.
 - A wallet transaction sent through the web app.
 - An automated end-to-end browser test suite or hosted app deployment.
 - Mainnet deployment.
@@ -471,16 +561,21 @@ expiry proceeds. The live close is blocked by liquidity, not by missing code.
 It is accurate to say:
 
 - Roster is deployed on Mezo testnet, chain 31611.
-- The contracts compiled, formatted, and passed 82/82 tests in default and CI profiles.
+- The contracts compiled, formatted, and passed 91/91 tests in default and CI profiles.
 - A real Mezo trove was opened with native BTC and borrowed MUSD.
 - A live series was funded, purchased, listed, filled, exercised, and had premium
   withdrawn.
 - A separate demo series expired and released collateral.
 - The order book is live with one open ask.
+- A wrapper holds actual main-series lots 1:1, and a Mezo Pools pool holds the wrapper
+  against MUSD.
+- A separate generated account acquired wrapper tokens through the Mezo router and
+  exercised one lot, delivering ERC-20 BTC and receiving the fixed MUSD payout.
 - The five-page web app production build succeeds.
 - The five pages loaded live RPC data in a read-only browser pass at desktop and mobile
-  widths, with screenshots recorded.
-- No audit, organic demand, trove closure, main expiry, or wallet-tested app is claimed.
+  widths, with screenshots recorded; the pass predates the wrapper/pool.
+- No audit, organic demand, trove closure, main expiry, organic wrapper liquidity, or
+  wallet-tested app is claimed.
 
 ## 9. Claims that are not safe
 
@@ -493,6 +588,10 @@ Do not say:
 - "the app is finished", "wallet-tested", "transaction-tested", or "fully validated";
   read-only screenshots exist, but no wallet transaction has been sent through the UI;
 - "native BTC and ERC-20 BTC are interchangeable through Roster";
+- "the wrapper/MUSD pool is deep, organic, or a Roster market";
+- "the wrapper is collateral or redeemable for series collateral/native BTC";
+- "the pool can exercise its own positions";
+- "the app supports the wrapper or pool";
 - "the project uses MEZO";
 - "a fork test executed Mezo liquidation or close flows";
 - "the series reserve makes the trove risk-free".
