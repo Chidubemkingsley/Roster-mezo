@@ -3,13 +3,24 @@ pragma solidity ^0.8.24;
 
 interface IERC20 {
     event Transfer(address indexed from, address indexed to, uint256 value);
-    event Approval(address indexed owner, address indexed spender, uint256 value);
+    event Approval(
+        address indexed owner,
+        address indexed spender,
+        uint256 value
+    );
     function totalSupply() external view returns (uint256);
     function balanceOf(address account) external view returns (uint256);
     function transfer(address to, uint256 value) external returns (bool);
-    function allowance(address owner, address spender) external view returns (uint256);
+    function allowance(
+        address owner,
+        address spender
+    ) external view returns (uint256);
     function approve(address spender, uint256 value) external returns (bool);
-    function transferFrom(address from, address to, uint256 value) external returns (bool);
+    function transferFrom(
+        address from,
+        address to,
+        uint256 value
+    ) external returns (bool);
 }
 
 interface IERC20Metadata is IERC20 {
@@ -22,26 +33,49 @@ library SafeERC20 {
     error SafeERC20FailedOperation(address token);
 
     function safeTransfer(IERC20 token, address to, uint256 value) internal {
-        _callOptionalReturn(token, abi.encodeCall(IERC20.transfer, (to, value)));
+        _callOptionalReturn(
+            token,
+            abi.encodeCall(IERC20.transfer, (to, value))
+        );
     }
 
-    function safeTransferFrom(IERC20 token, address from, address to, uint256 value) internal {
-        _callOptionalReturn(token, abi.encodeCall(IERC20.transferFrom, (from, to, value)));
+    function safeTransferFrom(
+        IERC20 token,
+        address from,
+        address to,
+        uint256 value
+    ) internal {
+        _callOptionalReturn(
+            token,
+            abi.encodeCall(IERC20.transferFrom, (from, to, value))
+        );
     }
 
-    function safeApprove(IERC20 token, address spender, uint256 value) internal {
-        _callOptionalReturn(token, abi.encodeCall(IERC20.approve, (spender, value)));
+    function safeApprove(
+        IERC20 token,
+        address spender,
+        uint256 value
+    ) internal {
+        _callOptionalReturn(
+            token,
+            abi.encodeCall(IERC20.approve, (spender, value))
+        );
     }
 
     function _callOptionalReturn(IERC20 token, bytes memory data) private {
         (bool success, bytes memory returndata) = address(token).call(data);
         if (!success) {
             if (returndata.length != 0) {
-                assembly { revert(add(returndata, 32), mload(returndata)) }
+                assembly {
+                    revert(add(returndata, 32), mload(returndata))
+                }
             }
             revert SafeERC20FailedOperation(address(token));
         }
-        if (returndata.length != 0 && (returndata.length < 32 || !abi.decode(returndata, (bool)))) {
+        if (
+            returndata.length != 0 &&
+            (returndata.length < 32 || !abi.decode(returndata, (bool)))
+        ) {
             revert SafeERC20FailedOperation(address(token));
         }
     }
@@ -59,9 +93,12 @@ abstract contract ReentrancyGuard {
     }
 }
 
-/// @title Roster Mezo BTC Put Series (Wave 1)
+/// @title Roster Mezo BTC Put Series (Wave 2)
 /// @notice Fixed-series, physically settled, MUSD-collateralized put on Mezo BTC.
 /// @dev One token = one 1e-6 BTC lot. The ERC-20 position ledger is internal to this contract.
+///      A protocol fee (in basis points) is collected from the buyer at purchase time and
+///      forwarded immediately to the immutable feeRecipient. The fee does not reduce
+///      the writer's collateral or the reserve backing active positions.
 ///      Mechanism demonstration only; this contract has not been professionally audited.
 contract RosterBtcPutSeries is IERC20Metadata, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -72,6 +109,7 @@ contract RosterBtcPutSeries is IERC20Metadata, ReentrancyGuard {
     error InvalidExpiry();
     error InvalidStrike();
     error InvalidPremium();
+    error InvalidFeeBps();
     error OnlyWriter();
     error WriterCannotPurchase();
     error WriterCannotExercise();
@@ -98,6 +136,14 @@ contract RosterBtcPutSeries is IERC20Metadata, ReentrancyGuard {
     uint256 public immutable premium_per_lot_raw;
     uint256 public immutable expiry;
     uint256 public constant LOT_SIZE_RAW = 1e12; // 1e-6 BTC, assuming 18 decimals
+    uint256 public constant MAX_FEE_BPS = 500; // 5% hard cap
+
+    /// @notice Protocol fee in basis points charged on buyer premium at purchase.
+    uint256 public immutable feeBps;
+    /// @notice Recipient of the protocol fee; set once at deployment.
+    address public immutable feeRecipient;
+    /// @notice Cumulative protocol fees collected across all purchases.
+    uint256 public total_fees_collected_raw;
 
     string private _seriesName;
     string private _seriesSymbol;
@@ -114,13 +160,25 @@ contract RosterBtcPutSeries is IERC20Metadata, ReentrancyGuard {
     bool public expired;
 
     mapping(address account => uint256 amount) private _balances;
-    mapping(address account => mapping(address spender => uint256 amount)) private _allowances;
+    mapping(address account => mapping(address spender => uint256 amount))
+        private _allowances;
 
     event WriterDeposited(address indexed writer, uint256 amount);
-    event Purchased(address indexed buyer, uint256 lots, uint256 premium, uint256 reserve);
-    event Exercised(address indexed holder, uint256 lots, uint256 btcAmount, uint256 musdPayout);
+    event Purchased(
+        address indexed buyer,
+        uint256 lots,
+        uint256 premium,
+        uint256 reserve
+    );
+    event Exercised(
+        address indexed holder,
+        uint256 lots,
+        uint256 btcAmount,
+        uint256 musdPayout
+    );
     event SeriesExpired(address indexed writer, uint256 releasedCollateral);
     event PremiumWithdrawn(address indexed writer, uint256 amount);
+    event ProtocolFeeCollected(address indexed feeRecipient, uint256 amount);
 
     constructor(
         address writer_,
@@ -130,18 +188,26 @@ contract RosterBtcPutSeries is IERC20Metadata, ReentrancyGuard {
         uint256 premium_per_lot_raw_,
         uint256 expiry_,
         string memory name_,
-        string memory symbol_
+        string memory symbol_,
+        address feeRecipient_,
+        uint256 feeBps_
     ) {
-        if (writer_ == address(0) || musd_ == address(0) || btc_ == address(0)) {
+        if (
+            writer_ == address(0) || musd_ == address(0) || btc_ == address(0)
+        ) {
             revert ZeroAddress();
         }
+        if (feeRecipient_ == address(0)) revert ZeroAddress();
         if (musd_ == btc_) revert IdenticalTokenAddresses();
         if (expiry_ <= block.timestamp) revert InvalidExpiry();
-        if (K_raw_ == 0 || K_raw_ % 1e6 != 0 || K_raw_ / 1e6 == 0) revert InvalidStrike();
+        if (K_raw_ == 0 || K_raw_ % 1e6 != 0 || K_raw_ / 1e6 == 0)
+            revert InvalidStrike();
         if (premium_per_lot_raw_ == 0) revert InvalidPremium();
+        if (feeBps_ > MAX_FEE_BPS) revert InvalidFeeBps();
 
         uint8 musdDecimals = IERC20Metadata(musd_).decimals();
-        if (musdDecimals != 18) revert InvalidTokenDecimals(musd_, musdDecimals);
+        if (musdDecimals != 18)
+            revert InvalidTokenDecimals(musd_, musdDecimals);
         uint8 btcDecimals = IERC20Metadata(btc_).decimals();
         if (btcDecimals != 18) revert InvalidTokenDecimals(btc_, btcDecimals);
 
@@ -154,6 +220,8 @@ contract RosterBtcPutSeries is IERC20Metadata, ReentrancyGuard {
         expiry = expiry_;
         _seriesName = name_;
         _seriesSymbol = symbol_;
+        feeRecipient = feeRecipient_;
+        feeBps = feeBps_;
     }
 
     // Internal position ledger exposed through the ERC-20 ABI. Protocol-specific restrictions
@@ -178,25 +246,38 @@ contract RosterBtcPutSeries is IERC20Metadata, ReentrancyGuard {
         return _balances[account];
     }
 
-    function allowance(address owner, address spender) public view override returns (uint256) {
+    function allowance(
+        address owner,
+        address spender
+    ) public view override returns (uint256) {
         return _allowances[owner][spender];
     }
 
     /// @dev Deliberately unguarded: approval changes allowance only, not position balances.
-    function approve(address spender, uint256 value) external override returns (bool) {
+    function approve(
+        address spender,
+        uint256 value
+    ) external override returns (bool) {
         if (spender == address(0)) revert InvalidRecipient();
         _allowances[msg.sender][spender] = value;
         emit Approval(msg.sender, spender, value);
         return true;
     }
 
-    function transfer(address to, uint256 value) external override nonReentrant returns (bool) {
+    function transfer(
+        address to,
+        uint256 value
+    ) external override nonReentrant returns (bool) {
         _checkTransferAllowed(to);
         _transfer(msg.sender, to, value);
         return true;
     }
 
-    function transferFrom(address from, address to, uint256 value) external override nonReentrant returns (bool) {
+    function transferFrom(
+        address from,
+        address to,
+        uint256 value
+    ) external override nonReentrant returns (bool) {
         _checkTransferAllowed(to);
         uint256 currentAllowance = _allowances[from][msg.sender];
         if (currentAllowance != type(uint256).max) {
@@ -211,7 +292,8 @@ contract RosterBtcPutSeries is IERC20Metadata, ReentrancyGuard {
     }
 
     function _checkTransferAllowed(address to) private view {
-        if (to == address(0) || to == writer || to == address(this)) revert InvalidRecipient();
+        if (to == address(0) || to == writer || to == address(this))
+            revert InvalidRecipient();
         if (expired || block.timestamp >= expiry) revert SeriesMatured();
     }
 
@@ -252,9 +334,23 @@ contract RosterBtcPutSeries is IERC20Metadata, ReentrancyGuard {
         total_deposited_raw += amount;
         collateral_balance_raw += amount;
         excess_raw += amount;
-        IERC20(address(musd)).safeTransferFrom(msg.sender, address(this), amount);
-        _requireExactDecrease(IERC20(address(musd)), msg.sender, writerBalanceBefore, amount);
-        _requireExactIncrease(IERC20(address(musd)), address(this), contractBalanceBefore, amount);
+        IERC20(address(musd)).safeTransferFrom(
+            msg.sender,
+            address(this),
+            amount
+        );
+        _requireExactDecrease(
+            IERC20(address(musd)),
+            msg.sender,
+            writerBalanceBefore,
+            amount
+        );
+        _requireExactIncrease(
+            IERC20(address(musd)),
+            address(this),
+            contractBalanceBefore,
+            amount
+        );
         emit WriterDeposited(msg.sender, amount);
     }
 
@@ -267,6 +363,12 @@ contract RosterBtcPutSeries is IERC20Metadata, ReentrancyGuard {
         uint256 reserveNeeded = _checkedMul(lots, strike_per_lot_raw);
         if (premium == 0) revert InvalidPremium();
         if (reserveNeeded > excess_raw) revert InsufficientExcess();
+
+        // Protocol fee is calculated on top of the writer premium. The buyer pays
+        // premium + fee; only premium enters the series reserve liability.
+        uint256 feeAmount = feeBps == 0 ? 0 : (premium * feeBps) / 10_000;
+        uint256 totalCharge = premium + feeAmount;
+
         uint256 buyerMUSDBefore = musd.balanceOf(msg.sender);
         uint256 contractMUSDBefore = musd.balanceOf(address(this));
 
@@ -275,9 +377,40 @@ contract RosterBtcPutSeries is IERC20Metadata, ReentrancyGuard {
         active_lots += lots;
         premium_balance_raw += premium;
         _mint(msg.sender, lots);
-        IERC20(address(musd)).safeTransferFrom(msg.sender, address(this), premium);
-        _requireExactDecrease(IERC20(address(musd)), msg.sender, buyerMUSDBefore, premium);
-        _requireExactIncrease(IERC20(address(musd)), address(this), contractMUSDBefore, premium);
+
+        // Pull total charge from buyer in one transfer.
+        IERC20(address(musd)).safeTransferFrom(
+            msg.sender,
+            address(this),
+            totalCharge
+        );
+        _requireExactDecrease(
+            IERC20(address(musd)),
+            msg.sender,
+            buyerMUSDBefore,
+            totalCharge
+        );
+        _requireExactIncrease(
+            IERC20(address(musd)),
+            address(this),
+            contractMUSDBefore,
+            totalCharge
+        );
+
+        // Forward the protocol fee immediately so it is never mixed with collateral.
+        if (feeAmount != 0) {
+            uint256 recipientBefore = musd.balanceOf(feeRecipient);
+            IERC20(address(musd)).safeTransfer(feeRecipient, feeAmount);
+            _requireExactIncrease(
+                IERC20(address(musd)),
+                feeRecipient,
+                recipientBefore,
+                feeAmount
+            );
+            total_fees_collected_raw += feeAmount;
+            emit ProtocolFeeCollected(feeRecipient, feeAmount);
+        }
+
         emit Purchased(msg.sender, lots, premium, reserveNeeded);
     }
 
@@ -285,14 +418,16 @@ contract RosterBtcPutSeries is IERC20Metadata, ReentrancyGuard {
         _requireLive();
         if (msg.sender == writer) revert WriterCannotExercise();
         if (lots == 0) revert InvalidQuantity();
-        if (lots > active_lots || _balances[msg.sender] < lots) revert InsufficientPositionTokens();
+        if (lots > active_lots || _balances[msg.sender] < lots)
+            revert InsufficientPositionTokens();
 
         uint256 btcAmount = _checkedMul(lots, LOT_SIZE_RAW);
         uint256 payout = _checkedMul(lots, strike_per_lot_raw);
         uint256 holderBtcBefore = btc.balanceOf(msg.sender);
         uint256 writerBtcBefore = btc.balanceOf(writer);
         if (holderBtcBefore < btcAmount) revert InsufficientBtcBalance();
-        if (btc.allowance(msg.sender, address(this)) < btcAmount) revert InsufficientBtcAllowance();
+        if (btc.allowance(msg.sender, address(this)) < btcAmount)
+            revert InsufficientBtcAllowance();
         uint256 holderMUSDBefore = musd.balanceOf(msg.sender);
         uint256 contractMUSDBefore = musd.balanceOf(address(this));
 
@@ -303,11 +438,31 @@ contract RosterBtcPutSeries is IERC20Metadata, ReentrancyGuard {
         total_payouts_raw += payout;
 
         IERC20(address(btc)).safeTransferFrom(msg.sender, writer, btcAmount);
-        _requireExactDecrease(IERC20(address(btc)), msg.sender, holderBtcBefore, btcAmount);
-        _requireExactIncrease(IERC20(address(btc)), writer, writerBtcBefore, btcAmount);
+        _requireExactDecrease(
+            IERC20(address(btc)),
+            msg.sender,
+            holderBtcBefore,
+            btcAmount
+        );
+        _requireExactIncrease(
+            IERC20(address(btc)),
+            writer,
+            writerBtcBefore,
+            btcAmount
+        );
         IERC20(address(musd)).safeTransfer(msg.sender, payout);
-        _requireExactDecrease(IERC20(address(musd)), address(this), contractMUSDBefore, payout);
-        _requireExactIncrease(IERC20(address(musd)), msg.sender, holderMUSDBefore, payout);
+        _requireExactDecrease(
+            IERC20(address(musd)),
+            address(this),
+            contractMUSDBefore,
+            payout
+        );
+        _requireExactIncrease(
+            IERC20(address(musd)),
+            msg.sender,
+            holderMUSDBefore,
+            payout
+        );
         emit Exercised(msg.sender, lots, btcAmount, payout);
     }
 
@@ -327,8 +482,18 @@ contract RosterBtcPutSeries is IERC20Metadata, ReentrancyGuard {
         // _totalSupply and balances remain unchanged; expired tokens are worthless and frozen.
         if (releaseAmount != 0) {
             IERC20(address(musd)).safeTransfer(writer, releaseAmount);
-            _requireExactDecrease(IERC20(address(musd)), address(this), contractMUSDBefore, releaseAmount);
-            _requireExactIncrease(IERC20(address(musd)), writer, writerMUSDBefore, releaseAmount);
+            _requireExactDecrease(
+                IERC20(address(musd)),
+                address(this),
+                contractMUSDBefore,
+                releaseAmount
+            );
+            _requireExactIncrease(
+                IERC20(address(musd)),
+                writer,
+                writerMUSDBefore,
+                releaseAmount
+            );
         }
         emit SeriesExpired(writer, releaseAmount);
     }
@@ -341,8 +506,18 @@ contract RosterBtcPutSeries is IERC20Metadata, ReentrancyGuard {
         uint256 writerMUSDBefore = musd.balanceOf(writer);
         premium_balance_raw = 0;
         IERC20(address(musd)).safeTransfer(writer, amount);
-        _requireExactDecrease(IERC20(address(musd)), address(this), contractMUSDBefore, amount);
-        _requireExactIncrease(IERC20(address(musd)), writer, writerMUSDBefore, amount);
+        _requireExactDecrease(
+            IERC20(address(musd)),
+            address(this),
+            contractMUSDBefore,
+            amount
+        );
+        _requireExactIncrease(
+            IERC20(address(musd)),
+            writer,
+            writerMUSDBefore,
+            amount
+        );
         emit PremiumWithdrawn(writer, amount);
     }
 
@@ -350,21 +525,40 @@ contract RosterBtcPutSeries is IERC20Metadata, ReentrancyGuard {
         if (expired || block.timestamp >= expiry) revert SeriesMatured();
     }
 
-    function _checkedMul(uint256 a, uint256 b) private pure returns (uint256 c) {
+    function _checkedMul(
+        uint256 a,
+        uint256 b
+    ) private pure returns (uint256 c) {
         if (a != 0 && b > type(uint256).max / a) revert AmountOverflow();
         c = a * b;
     }
 
-    function _requireExactIncrease(IERC20 token, address account, uint256 beforeBalance, uint256 amount) private view {
+    function _requireExactIncrease(
+        IERC20 token,
+        address account,
+        uint256 beforeBalance,
+        uint256 amount
+    ) private view {
         uint256 afterBalance = token.balanceOf(account);
-        if (afterBalance < beforeBalance || afterBalance - beforeBalance != amount) {
+        if (
+            afterBalance < beforeBalance ||
+            afterBalance - beforeBalance != amount
+        ) {
             revert UnexpectedTokenAmount(address(token));
         }
     }
 
-    function _requireExactDecrease(IERC20 token, address account, uint256 beforeBalance, uint256 amount) private view {
+    function _requireExactDecrease(
+        IERC20 token,
+        address account,
+        uint256 beforeBalance,
+        uint256 amount
+    ) private view {
         uint256 afterBalance = token.balanceOf(account);
-        if (afterBalance > beforeBalance || beforeBalance - afterBalance != amount) {
+        if (
+            afterBalance > beforeBalance ||
+            beforeBalance - afterBalance != amount
+        ) {
             revert UnexpectedTokenAmount(address(token));
         }
     }

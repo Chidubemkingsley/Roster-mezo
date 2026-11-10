@@ -29,7 +29,11 @@ contract RosterBtcPutSeriesTest is TestBase {
         _assertEq(series.balanceOf(writer), 0, "writer got no tokens");
         _assertEq(series.active_lots(), 10, "active lots");
         _assertEq(series.reserved_raw(), 10 * STRIKE_PER_LOT, "reserve");
-        _assertEq(series.premium_balance_raw(), 10 * PREMIUM_PER_LOT, "premium credited");
+        _assertEq(
+            series.premium_balance_raw(),
+            10 * PREMIUM_PER_LOT,
+            "premium credited"
+        );
         _checkLiveAccounting();
     }
 
@@ -51,7 +55,18 @@ contract RosterBtcPutSeriesTest is TestBase {
 
     function test_constructor_zero_premium_reverts() public {
         vm.expectRevert(RosterBtcPutSeries.InvalidPremium.selector);
-        new RosterBtcPutSeries(writer, address(musd), address(btc), K_RAW, 0, expiryTime, "Zero Premium", "ZERO");
+        new RosterBtcPutSeries(
+            writer,
+            address(musd),
+            address(btc),
+            K_RAW,
+            0,
+            expiryTime,
+            "Zero Premium",
+            "ZERO",
+            feeRecipient,
+            FEE_BPS
+        );
     }
 
     function test_zero_quantities_revert() public {
@@ -86,7 +101,11 @@ contract RosterBtcPutSeriesTest is TestBase {
         vm.prank(spender);
         series.transferFrom(alice, writer, 1);
         _assertEq(series.balanceOf(alice), 2, "balance unchanged");
-        _assertEq(series.allowance(alice, spender), 2, "allowance unchanged on revert");
+        _assertEq(
+            series.allowance(alice, spender),
+            2,
+            "allowance unchanged on revert"
+        );
     }
 
     function test_exercise_self_only() public {
@@ -111,9 +130,21 @@ contract RosterBtcPutSeriesTest is TestBase {
         uint256 musdBefore = musd.balanceOf(alice);
         vm.prank(alice);
         series.exercise(3);
-        _assertEq(btcBefore - btc.balanceOf(alice), 3 * series.LOT_SIZE_RAW(), "exact BTC debit");
-        _assertEq(musd.balanceOf(alice) - musdBefore, 3 * STRIKE_PER_LOT, "exact MUSD payout");
-        _assertEq(series.total_payouts_raw(), 3 * STRIKE_PER_LOT, "exact audit payout");
+        _assertEq(
+            btcBefore - btc.balanceOf(alice),
+            3 * series.LOT_SIZE_RAW(),
+            "exact BTC debit"
+        );
+        _assertEq(
+            musd.balanceOf(alice) - musdBefore,
+            3 * STRIKE_PER_LOT,
+            "exact MUSD payout"
+        );
+        _assertEq(
+            series.total_payouts_raw(),
+            3 * STRIKE_PER_LOT,
+            "exact audit payout"
+        );
         _checkLiveAccounting();
     }
 
@@ -126,7 +157,11 @@ contract RosterBtcPutSeriesTest is TestBase {
         series.exercise(3);
         _assertEq(series.balanceOf(alice), 7, "remaining tokens");
         _assertEq(series.active_lots(), 7, "remaining active lots");
-        _assertEq(series.reserved_raw(), reserveBefore - 3 * STRIKE_PER_LOT, "reserve reduced");
+        _assertEq(
+            series.reserved_raw(),
+            reserveBefore - 3 * STRIKE_PER_LOT,
+            "reserve reduced"
+        );
         _assertEq(series.excess_raw(), excessBefore, "excess unchanged");
         _checkLiveAccounting();
     }
@@ -166,14 +201,30 @@ contract RosterBtcPutSeriesTest is TestBase {
         uint256 alicePositionsBefore = series.balanceOf(alice);
         vm.warp(expiryTime);
         series.expire();
-        _assertEq(musd.balanceOf(writer) - writerBefore, collateralBeforeExpiry, "all residual collateral returned");
-        _assertEq(series.expiry_release_raw(), collateralBeforeExpiry, "release recorded");
+        _assertEq(
+            musd.balanceOf(writer) - writerBefore,
+            collateralBeforeExpiry,
+            "all residual collateral returned"
+        );
+        _assertEq(
+            series.expiry_release_raw(),
+            collateralBeforeExpiry,
+            "release recorded"
+        );
         _assertEq(series.collateral_balance_raw(), 0, "collateral zero");
         _assertEq(series.reserved_raw(), 0, "reserve zero");
         _assertEq(series.excess_raw(), 0, "excess zero");
         _assertEq(series.active_lots(), 0, "live liability zero");
-        _assertEq(series.totalSupply(), tokenSupplyBefore, "unburned supply remains");
-        _assertEq(series.balanceOf(alice), alicePositionsBefore, "expired positions remain in wallet");
+        _assertEq(
+            series.totalSupply(),
+            tokenSupplyBefore,
+            "unburned supply remains"
+        );
+        _assertEq(
+            series.balanceOf(alice),
+            alicePositionsBefore,
+            "expired positions remain in wallet"
+        );
         _checkAudit();
         _checkSolvency();
     }
@@ -189,9 +240,17 @@ contract RosterBtcPutSeriesTest is TestBase {
         uint256 writerBefore = musd.balanceOf(writer);
         vm.prank(writer);
         series.withdrawPremium();
-        _assertEq(musd.balanceOf(writer) - writerBefore, premium, "premium received");
+        _assertEq(
+            musd.balanceOf(writer) - writerBefore,
+            premium,
+            "premium received"
+        );
         _assertEq(series.premium_balance_raw(), 0, "premium liability cleared");
-        _assertEq(series.collateral_balance_raw(), collateralBefore, "collateral unaffected");
+        _assertEq(
+            series.collateral_balance_raw(),
+            collateralBefore,
+            "collateral unaffected"
+        );
         _checkSolvency();
     }
 
@@ -204,7 +263,9 @@ contract RosterBtcPutSeriesTest is TestBase {
         series.exercise(1);
         _checkLiveAccounting();
         _assertEq(
-            series.balanceOf(alice) + series.balanceOf(bob) + series.balanceOf(carol),
+            series.balanceOf(alice) +
+                series.balanceOf(bob) +
+                series.balanceOf(carol),
             series.totalSupply(),
             "tracked sum live"
         );
@@ -216,7 +277,9 @@ contract RosterBtcPutSeriesTest is TestBase {
         _assertEq(series.excess_raw(), 0, "post-expiry excess");
         _assertEq(series.active_lots(), 0, "post-expiry active lots");
         _assertEq(
-            series.balanceOf(alice) + series.balanceOf(bob) + series.balanceOf(carol),
+            series.balanceOf(alice) +
+                series.balanceOf(bob) +
+                series.balanceOf(carol),
             series.totalSupply(),
             "tracked sum finalized"
         );
@@ -260,14 +323,22 @@ contract RosterBtcPutSeriesTest is TestBase {
         vm.warp(expiryTime);
         series.expire();
         _assertEq(series.totalSupply(), supply, "supply fixed after expiry");
-        _assertEq(series.balanceOf(alice), aliceBalance, "alice positions frozen");
+        _assertEq(
+            series.balanceOf(alice),
+            aliceBalance,
+            "alice positions frozen"
+        );
         _assertEq(series.balanceOf(bob), bobBalance, "bob positions frozen");
         _assertEq(series.name(), "Roster Mezo BTC Put Series", "name");
         _assertEq(series.symbol(), "RBTC-PUT", "symbol");
     }
 
     function test_reentrancy_with_adversarial_token() public {
-        (RosterBtcPutSeries s, MockERC20 m, CallbackERC20 btc) = _newCallbackSeries();
+        (
+            RosterBtcPutSeries s,
+            MockERC20 m,
+            CallbackERC20 btc
+        ) = _newCallbackSeries();
         vm.prank(writer);
         m.approve(address(s), type(uint256).max);
         vm.prank(alice);
@@ -283,9 +354,14 @@ contract RosterBtcPutSeriesTest is TestBase {
         btc.configureCallback(address(s), address(s), payload, false);
         vm.prank(alice);
         s.exercise(1);
-        _assertTrue(!btc.lastCallbackSucceeded(), "reentrant purchase rejected");
+        _assertTrue(
+            !btc.lastCallbackSucceeded(),
+            "reentrant purchase rejected"
+        );
         _assertEq(
-            btc.lastCallbackRevertSelector(), bytes4(keccak256("ReentrancyGuardReentrantCall()")), "guard selector"
+            btc.lastCallbackRevertSelector(),
+            bytes4(keccak256("ReentrancyGuardReentrantCall()")),
+            "guard selector"
         );
         _assertEq(s.active_lots(), 1, "only outer exercise applied");
         _assertEq(s.totalSupply(), 1, "supply matches outer exercise");
@@ -293,18 +369,77 @@ contract RosterBtcPutSeriesTest is TestBase {
 
     function test_constructor_invalid_params() public {
         vm.expectRevert(RosterBtcPutSeries.ZeroAddress.selector);
-        new RosterBtcPutSeries(address(0), address(musd), address(btc), K_RAW, PREMIUM_PER_LOT, expiryTime, "X", "X");
+        new RosterBtcPutSeries(
+            address(0),
+            address(musd),
+            address(btc),
+            K_RAW,
+            PREMIUM_PER_LOT,
+            expiryTime,
+            "X",
+            "X",
+            feeRecipient,
+            FEE_BPS
+        );
         vm.expectRevert(RosterBtcPutSeries.IdenticalTokenAddresses.selector);
-        new RosterBtcPutSeries(writer, address(musd), address(musd), K_RAW, PREMIUM_PER_LOT, expiryTime, "X", "X");
+        new RosterBtcPutSeries(
+            writer,
+            address(musd),
+            address(musd),
+            K_RAW,
+            PREMIUM_PER_LOT,
+            expiryTime,
+            "X",
+            "X",
+            feeRecipient,
+            FEE_BPS
+        );
         vm.expectRevert(RosterBtcPutSeries.InvalidExpiry.selector);
-        new RosterBtcPutSeries(writer, address(musd), address(btc), K_RAW, PREMIUM_PER_LOT, block.timestamp, "X", "X");
+        new RosterBtcPutSeries(
+            writer,
+            address(musd),
+            address(btc),
+            K_RAW,
+            PREMIUM_PER_LOT,
+            block.timestamp,
+            "X",
+            "X",
+            feeRecipient,
+            FEE_BPS
+        );
         vm.expectRevert(RosterBtcPutSeries.InvalidStrike.selector);
-        new RosterBtcPutSeries(writer, address(musd), address(btc), 123, PREMIUM_PER_LOT, expiryTime, "X", "X");
+        new RosterBtcPutSeries(
+            writer,
+            address(musd),
+            address(btc),
+            123,
+            PREMIUM_PER_LOT,
+            expiryTime,
+            "X",
+            "X",
+            feeRecipient,
+            FEE_BPS
+        );
         MockERC20 badDecimals = new MockERC20("Bad", "BAD", 6);
         vm.expectRevert(
-            abi.encodeWithSelector(RosterBtcPutSeries.InvalidTokenDecimals.selector, address(badDecimals), 6)
+            abi.encodeWithSelector(
+                RosterBtcPutSeries.InvalidTokenDecimals.selector,
+                address(badDecimals),
+                6
+            )
         );
-        new RosterBtcPutSeries(writer, address(badDecimals), address(btc), K_RAW, PREMIUM_PER_LOT, expiryTime, "X", "X");
+        new RosterBtcPutSeries(
+            writer,
+            address(badDecimals),
+            address(btc),
+            K_RAW,
+            PREMIUM_PER_LOT,
+            expiryTime,
+            "X",
+            "X",
+            feeRecipient,
+            FEE_BPS
+        );
     }
 
     function test_exercise_insufficient_btc_reverts() public {
@@ -329,7 +464,11 @@ contract RosterBtcPutSeriesTest is TestBase {
         vm.expectRevert(RosterBtcPutSeries.InsufficientBtcAllowance.selector);
         vm.prank(alice);
         series.exercise(1);
-        _assertEq(series.balanceOf(alice), 1, "position not burned on failed exercise");
+        _assertEq(
+            series.balanceOf(alice),
+            1,
+            "position not burned on failed exercise"
+        );
         _checkLiveAccounting();
     }
 
@@ -337,9 +476,16 @@ contract RosterBtcPutSeriesTest is TestBase {
         uint256 collateralBefore = series.collateral_balance_raw();
         vm.prank(alice);
         musd.transfer(address(series), WAD);
-        _assertEq(series.collateral_balance_raw(), collateralBefore, "donation not credited");
+        _assertEq(
+            series.collateral_balance_raw(),
+            collateralBefore,
+            "donation not credited"
+        );
         _assertEq(series.excess_raw(), 0, "donation creates no capacity");
-        _assertTrue(musd.balanceOf(address(series)) > collateralBefore, "donation is stranded surplus");
+        _assertTrue(
+            musd.balanceOf(address(series)) > collateralBefore,
+            "donation is stranded surplus"
+        );
         _checkSolvency();
     }
 
@@ -396,7 +542,11 @@ contract RosterBtcPutSeriesTest is TestBase {
         vm.prank(alice);
         series.transfer(bob, 1);
         _assertTrue(!series.expired(), "not finalized yet");
-        _assertEq(series.collateral_balance_raw(), collateralAtMaturity, "collateral held in limbo");
+        _assertEq(
+            series.collateral_balance_raw(),
+            collateralAtMaturity,
+            "collateral held in limbo"
+        );
         _checkLiveAccounting();
         vm.prank(carol);
         series.expire();
@@ -415,11 +565,19 @@ contract RosterBtcPutSeriesTest is TestBase {
         vm.prank(spender);
         series.transferFrom(alice, address(series), 1);
         _assertEq(series.balanceOf(alice), 2, "position unchanged");
-        _assertEq(series.reserved_raw(), 2 * STRIKE_PER_LOT, "reserve unchanged");
+        _assertEq(
+            series.reserved_raw(),
+            2 * STRIKE_PER_LOT,
+            "reserve unchanged"
+        );
     }
 
     function test_reentrancy_callback_blocked_by_guard_zero_allowance() public {
-        (RosterBtcPutSeries s, MockERC20 m, CallbackERC20 btc) = _newCallbackSeries();
+        (
+            RosterBtcPutSeries s,
+            MockERC20 m,
+            CallbackERC20 btc
+        ) = _newCallbackSeries();
         vm.prank(writer);
         m.approve(address(s), type(uint256).max);
         vm.prank(alice);
@@ -431,25 +589,43 @@ contract RosterBtcPutSeriesTest is TestBase {
         s.deposit(5 * WAD);
         vm.prank(alice);
         s.purchase(2);
-        bytes memory payload = abi.encodeWithSelector(s.transferFrom.selector, alice, attacker, 1);
+        bytes memory payload = abi.encodeWithSelector(
+            s.transferFrom.selector,
+            alice,
+            attacker,
+            1
+        );
         btc.configureCallback(address(s), address(s), payload, false);
         vm.prank(alice);
         s.exercise(1);
-        _assertTrue(!btc.lastCallbackSucceeded(), "callback transferFrom blocked");
+        _assertTrue(
+            !btc.lastCallbackSucceeded(),
+            "callback transferFrom blocked"
+        );
         _assertEq(
             btc.lastCallbackRevertSelector(),
             bytes4(keccak256("ReentrancyGuardReentrantCall()")),
             "guard runs before allowance"
         );
-        _assertEq(s.allowance(alice, address(btc)), 0, "zero allowance remains zero");
+        _assertEq(
+            s.allowance(alice, address(btc)),
+            0,
+            "zero allowance remains zero"
+        );
         _assertEq(s.balanceOf(alice), 1, "outer burn only");
         _assertEq(s.balanceOf(attacker), 0, "attacker gets none");
         _assertEq(s.active_lots(), 1, "active lots");
         _assertEq(s.reserved_raw(), STRIKE_PER_LOT, "reserve");
     }
 
-    function test_reentrancy_callback_blocked_by_guard_nonzero_allowance() public {
-        (RosterBtcPutSeries s, MockERC20 m, CallbackERC20 btc) = _newCallbackSeries();
+    function test_reentrancy_callback_blocked_by_guard_nonzero_allowance()
+        public
+    {
+        (
+            RosterBtcPutSeries s,
+            MockERC20 m,
+            CallbackERC20 btc
+        ) = _newCallbackSeries();
         vm.prank(writer);
         m.approve(address(s), type(uint256).max);
         vm.prank(alice);
@@ -463,24 +639,40 @@ contract RosterBtcPutSeriesTest is TestBase {
         s.purchase(2);
         vm.prank(alice);
         s.approve(address(btc), 1);
-        bytes memory payload = abi.encodeWithSelector(s.transferFrom.selector, alice, attacker, 1);
+        bytes memory payload = abi.encodeWithSelector(
+            s.transferFrom.selector,
+            alice,
+            attacker,
+            1
+        );
         btc.configureCallback(address(s), address(s), payload, false);
         vm.prank(alice);
         s.exercise(1);
-        _assertTrue(!btc.lastCallbackSucceeded(), "callback transferFrom blocked");
+        _assertTrue(
+            !btc.lastCallbackSucceeded(),
+            "callback transferFrom blocked"
+        );
         _assertEq(
             btc.lastCallbackRevertSelector(),
             bytes4(keccak256("ReentrancyGuardReentrantCall()")),
             "guard runs before allowance"
         );
-        _assertEq(s.allowance(alice, address(btc)), 1, "allowance not consumed by failed callback");
+        _assertEq(
+            s.allowance(alice, address(btc)),
+            1,
+            "allowance not consumed by failed callback"
+        );
         _assertEq(s.balanceOf(alice), 1, "outer burn only");
         _assertEq(s.balanceOf(attacker), 0, "attacker gets none");
         _assertEq(s.active_lots(), 1, "active lots");
     }
 
     function test_reentrancy_callback_bubbled_reverts_outer() public {
-        (RosterBtcPutSeries s, MockERC20 m, CallbackERC20 btc) = _newCallbackSeries();
+        (
+            RosterBtcPutSeries s,
+            MockERC20 m,
+            CallbackERC20 btc
+        ) = _newCallbackSeries();
         vm.prank(writer);
         m.approve(address(s), type(uint256).max);
         vm.prank(alice);
@@ -492,7 +684,12 @@ contract RosterBtcPutSeriesTest is TestBase {
         s.deposit(5 * WAD);
         vm.prank(alice);
         s.purchase(2);
-        bytes memory payload = abi.encodeWithSelector(s.transferFrom.selector, alice, attacker, 1);
+        bytes memory payload = abi.encodeWithSelector(
+            s.transferFrom.selector,
+            alice,
+            attacker,
+            1
+        );
         btc.configureCallback(address(s), address(s), payload, true);
         uint256 alicePosBefore = s.balanceOf(alice);
         uint256 supplyBefore = s.totalSupply();
@@ -508,34 +705,97 @@ contract RosterBtcPutSeriesTest is TestBase {
         _assertEq(s.totalSupply(), supplyBefore, "supply reverted");
         _assertEq(s.active_lots(), 2, "active lots reverted");
         _assertEq(s.reserved_raw(), reserveBefore, "reserve reverted");
-        _assertEq(s.collateral_balance_raw(), collateralBefore, "collateral reverted");
+        _assertEq(
+            s.collateral_balance_raw(),
+            collateralBefore,
+            "collateral reverted"
+        );
         _assertEq(btc.balanceOf(alice), btcAliceBefore, "btc debit reverted");
-        _assertEq(btc.balanceOf(writer), btcWriterBefore, "btc credit reverted");
-        _assertEq(btc.allowance(alice, address(s)), btcAllowanceBefore, "btc allowance reverted");
+        _assertEq(
+            btc.balanceOf(writer),
+            btcWriterBefore,
+            "btc credit reverted"
+        );
+        _assertEq(
+            btc.allowance(alice, address(s)),
+            btcAllowanceBefore,
+            "btc allowance reverted"
+        );
     }
 
     function test_constructor_wrong_btc_decimals_reverts() public {
         MockERC20 badBtc = new MockERC20("Bad BTC", "BADBTC", 8);
-        vm.expectRevert(abi.encodeWithSelector(RosterBtcPutSeries.InvalidTokenDecimals.selector, address(badBtc), 8));
-        new RosterBtcPutSeries(writer, address(musd), address(badBtc), K_RAW, PREMIUM_PER_LOT, expiryTime, "X", "X");
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                RosterBtcPutSeries.InvalidTokenDecimals.selector,
+                address(badBtc),
+                8
+            )
+        );
+        new RosterBtcPutSeries(
+            writer,
+            address(musd),
+            address(badBtc),
+            K_RAW,
+            PREMIUM_PER_LOT,
+            expiryTime,
+            "X",
+            "X",
+            feeRecipient,
+            FEE_BPS
+        );
     }
 
     function test_fee_on_transfer_musd_is_rejected_atomically() public {
-        FeeOnTransferERC20 feeMUSD = new FeeOnTransferERC20("Fee MUSD", "fMUSD", 18);
+        FeeOnTransferERC20 feeMUSD = new FeeOnTransferERC20(
+            "Fee MUSD",
+            "fMUSD",
+            18
+        );
         feeMUSD.mint(writer, 100 * WAD);
         RosterBtcPutSeries feeSeries = new RosterBtcPutSeries(
-            writer, address(feeMUSD), address(btc), K_RAW, PREMIUM_PER_LOT, expiryTime, "Fee Test", "FEE"
+            writer,
+            address(feeMUSD),
+            address(btc),
+            K_RAW,
+            PREMIUM_PER_LOT,
+            expiryTime,
+            "Fee Test",
+            "FEE",
+            feeRecipient,
+            FEE_BPS
         );
         vm.prank(writer);
         feeMUSD.approve(address(feeSeries), type(uint256).max);
         uint256 writerBefore = feeMUSD.balanceOf(writer);
-        vm.expectRevert(abi.encodeWithSelector(RosterBtcPutSeries.UnexpectedTokenAmount.selector, address(feeMUSD)));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                RosterBtcPutSeries.UnexpectedTokenAmount.selector,
+                address(feeMUSD)
+            )
+        );
         vm.prank(writer);
         feeSeries.deposit(10 * WAD);
-        _assertEq(feeSeries.total_deposited_raw(), 0, "failed deposit rolled accounting back");
-        _assertEq(feeSeries.collateral_balance_raw(), 0, "no collateral credited");
-        _assertEq(feeMUSD.balanceOf(address(feeSeries)), 0, "token movement reverted");
-        _assertEq(feeMUSD.balanceOf(writer), writerBefore, "writer balance reverted");
+        _assertEq(
+            feeSeries.total_deposited_raw(),
+            0,
+            "failed deposit rolled accounting back"
+        );
+        _assertEq(
+            feeSeries.collateral_balance_raw(),
+            0,
+            "no collateral credited"
+        );
+        _assertEq(
+            feeMUSD.balanceOf(address(feeSeries)),
+            0,
+            "token movement reverted"
+        );
+        _assertEq(
+            feeMUSD.balanceOf(writer),
+            writerBefore,
+            "writer balance reverted"
+        );
     }
 
     function test_expiry_release_audit_identity() public {
@@ -546,13 +806,152 @@ contract RosterBtcPutSeriesTest is TestBase {
         vm.warp(expiryTime);
         series.expire();
         _assertEq(
-            series.total_deposited_raw() - series.total_payouts_raw() - series.expiry_release_raw(),
+            series.total_deposited_raw() -
+                series.total_payouts_raw() -
+                series.expiry_release_raw(),
             0,
             "post expiry audit"
         );
     }
 
-    function _newCallbackSeries() internal returns (RosterBtcPutSeries s, MockERC20 m, CallbackERC20 btc) {
+    // -----------------------------------------------------------------------
+    // Protocol fee tests (Wave 2)
+    // -----------------------------------------------------------------------
+
+    function test_protocol_fee_collected_at_purchase() public {
+        // FEE_BPS = 50 (0.5%). On 10 lots at PREMIUM_PER_LOT = 1e15 per lot:
+        //   premium = 10 * 1e15 = 1e16
+        //   fee     = 1e16 * 50 / 10_000 = 5e12
+        //   total charge to buyer = 1e16 + 5e12
+        _deposit(10 * STRIKE_PER_LOT);
+
+        uint256 buyerBefore = musd.balanceOf(alice);
+        uint256 feeBefore = musd.balanceOf(feeRecipient);
+        uint256 seriesBefore = musd.balanceOf(address(series));
+
+        _buy(alice, 10);
+
+        uint256 premium = 10 * PREMIUM_PER_LOT;
+        uint256 feeAmount = (premium * FEE_BPS) / 10_000;
+        uint256 totalCharge = premium + feeAmount;
+
+        _assertEq(
+            buyerBefore - musd.balanceOf(alice),
+            totalCharge,
+            "buyer charged premium+fee"
+        );
+        _assertEq(
+            musd.balanceOf(feeRecipient) - feeBefore,
+            feeAmount,
+            "fee forwarded to recipient"
+        );
+        _assertEq(
+            musd.balanceOf(address(series)) - seriesBefore,
+            premium, // only the premium stayed in the series
+            "only premium credited to series"
+        );
+        _assertEq(
+            series.premium_balance_raw(),
+            premium,
+            "premium_balance_raw = premium only"
+        );
+        _assertEq(
+            series.total_fees_collected_raw(),
+            feeAmount,
+            "total_fees_collected tracked"
+        );
+        _checkSolvency();
+    }
+
+    function test_protocol_fee_zero_bps_no_charge() public {
+        // Deploy a zero-fee series and confirm no extra charge.
+        RosterBtcPutSeries zeroFeeSeries = new RosterBtcPutSeries(
+            writer,
+            address(musd),
+            address(btc),
+            K_RAW,
+            PREMIUM_PER_LOT,
+            expiryTime,
+            "Zero Fee Put",
+            "ZF-PUT",
+            feeRecipient,
+            0 // feeBps = 0
+        );
+        vm.prank(writer);
+        musd.approve(address(zeroFeeSeries), type(uint256).max);
+        vm.prank(alice);
+        musd.approve(address(zeroFeeSeries), type(uint256).max);
+        vm.prank(writer);
+        zeroFeeSeries.deposit(10 * STRIKE_PER_LOT);
+
+        uint256 feeBefore = musd.balanceOf(feeRecipient);
+        vm.prank(alice);
+        zeroFeeSeries.purchase(5);
+
+        _assertEq(
+            musd.balanceOf(feeRecipient),
+            feeBefore,
+            "no fee charged at zero bps"
+        );
+        _assertEq(
+            zeroFeeSeries.total_fees_collected_raw(),
+            0,
+            "fee tracker stays zero"
+        );
+    }
+
+    function test_protocol_fee_capped_at_500bps() public {
+        // 501 bps must revert at construction.
+        vm.expectRevert(RosterBtcPutSeries.InvalidFeeBps.selector);
+        new RosterBtcPutSeries(
+            writer,
+            address(musd),
+            address(btc),
+            K_RAW,
+            PREMIUM_PER_LOT,
+            expiryTime,
+            "Excessive Fee",
+            "XF-PUT",
+            feeRecipient,
+            501
+        );
+    }
+
+    function test_protocol_fee_does_not_reduce_reserve_or_collateral() public {
+        // The fee is charged on top of the premium; collateral and reserve are unaffected.
+        _deposit(5 * STRIKE_PER_LOT);
+        _buy(alice, 5);
+
+        uint256 expectedCollateral = 5 * STRIKE_PER_LOT;
+        uint256 expectedReserve = 5 * STRIKE_PER_LOT;
+        _assertEq(
+            series.collateral_balance_raw(),
+            expectedCollateral,
+            "collateral unchanged by fee"
+        );
+        _assertEq(
+            series.reserved_raw(),
+            expectedReserve,
+            "reserve unchanged by fee"
+        );
+        _assertEq(series.active_lots(), 5, "active lots unchanged");
+        _checkSolvency();
+        _checkLiveAccounting();
+    }
+
+    function test_protocol_fee_solvency_after_exercise() public {
+        _deposit(5 * STRIKE_PER_LOT);
+        _buy(alice, 5);
+        vm.prank(alice);
+        series.exercise(3);
+        _checkSolvency();
+        _checkAudit();
+    }
+
+    function _newCallbackSeries()
+        internal
+        returns (RosterBtcPutSeries s, MockERC20 m, CallbackERC20 btc)
+    {
         m = new MockERC20("MUSD callback test", "mMUSD", 18);
         btc = new CallbackERC20("BTC callback test", "cBTC", 18);
         s = new RosterBtcPutSeries(
@@ -563,7 +962,9 @@ contract RosterBtcPutSeriesTest is TestBase {
             PREMIUM_PER_LOT,
             block.timestamp + 30 days,
             "Callback Put Series",
-            "CBPUT"
+            "CBPUT",
+            feeRecipient,
+            FEE_BPS
         );
         m.mint(writer, 1_000_000 * WAD);
         m.mint(alice, 1_000_000 * WAD);

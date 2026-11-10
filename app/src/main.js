@@ -132,7 +132,9 @@ function fmtAmount(raw, maxFractionDigits = 4) {
   if (Math.abs(value) < 0.001) {
     return value.toLocaleString("en-US", { maximumFractionDigits: 12 });
   }
-  return value.toLocaleString("en-US", { maximumFractionDigits: maxFractionDigits });
+  return value.toLocaleString("en-US", {
+    maximumFractionDigits: maxFractionDigits,
+  });
 }
 
 function fmtInt(value) {
@@ -184,7 +186,10 @@ function shortAddress(address, start = 6, end = 4) {
 }
 
 function relativeTime(timestamp) {
-  const seconds = Math.max(0, Math.floor(Date.now() / 1000) - Number(timestamp));
+  const seconds = Math.max(
+    0,
+    Math.floor(Date.now() / 1000) - Number(timestamp),
+  );
   if (seconds < 60) return `${seconds}s ago`;
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
   if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
@@ -269,7 +274,9 @@ function selectedSeries() {
 
 function isMatured(series) {
   if (!series) return false;
-  return series.expired || Math.floor(Date.now() / 1000) >= Number(series.expiry);
+  return (
+    series.expired || Math.floor(Date.now() / 1000) >= Number(series.expiry)
+  );
 }
 
 function statusOf(series) {
@@ -288,7 +295,10 @@ async function safe(read, fallback = null) {
       }),
     ]);
   } catch (error) {
-    console.warn("[roster] read failed:", error?.shortMessage || error?.message || error);
+    console.warn(
+      "[roster] read failed:",
+      error?.shortMessage || error?.message || error,
+    );
     return fallback;
   }
 }
@@ -328,7 +338,10 @@ async function connectWallet(interactive = true) {
     const account = await signer.getAddress();
     state.signer = signer;
     state.account = account;
-    if (!state.watch || state.watch.toLowerCase() === CONFIG.deployer.toLowerCase()) {
+    if (
+      !state.watch ||
+      state.watch.toLowerCase() === CONFIG.deployer.toLowerCase()
+    ) {
       state.watch = account;
       if ($("watchAddress")) $("watchAddress").value = account;
     }
@@ -338,10 +351,15 @@ async function connectWallet(interactive = true) {
     await refreshBuyButton();
     await refreshExerciseButton();
     await refreshListButton();
-    toast("Wallet connected", `${shortAddress(account)} on Mezo testnet.`, "success");
+    toast(
+      "Wallet connected",
+      `${shortAddress(account)} on Mezo testnet.`,
+      "success",
+    );
     return true;
   } catch (error) {
-    if (interactive) toast("Wallet connection failed", errorMessage(error), "error");
+    if (interactive)
+      toast("Wallet connection failed", errorMessage(error), "error");
     return false;
   }
 }
@@ -390,12 +408,21 @@ async function approveIfNeeded(tokenAddress, tokenAbi, spender, amount, label) {
   const token = new Contract(tokenAddress, tokenAbi, state.signer);
   const current = await token.allowance(state.account, spender);
   if (current >= amount) return;
-  const node = toast(`Approve ${label}`, "Confirm the approval in your wallet.", "pending");
+  const node = toast(
+    `Approve ${label}`,
+    "Confirm the approval in your wallet.",
+    "pending",
+  );
   try {
     const tx = await token.approve(spender, amount);
     await tx.wait();
     removeToast(node);
-    toast(`${label} approved`, "Approval confirmed. Continuing…", "success", tx.hash);
+    toast(
+      `${label} approved`,
+      "Approval confirmed. Continuing…",
+      "success",
+      tx.hash,
+    );
   } catch (error) {
     removeToast(node);
     throw error;
@@ -434,6 +461,8 @@ async function loadSeriesList() {
       expiryRelease,
       expired,
       decimals,
+      feeBps,
+      totalFeesCollected,
     ] = await Promise.all([
       safe(() => contract.name()),
       safe(() => contract.symbol()),
@@ -452,6 +481,8 @@ async function loadSeriesList() {
       safe(() => contract.expiry_release_raw()),
       safe(() => contract.expired()),
       safe(() => contract.decimals()),
+      safe(() => contract.feeBps()),
+      safe(() => contract.total_fees_collected_raw()),
     ]);
 
     if (name === null && symbol === null && strike === null) continue;
@@ -477,11 +508,15 @@ async function loadSeriesList() {
       expiryRelease,
       expired: Boolean(expired),
       decimals: decimals === null ? null : Number(decimals),
+      feeBps: feeBps === null ? 0n : feeBps,
+      totalFeesCollected: totalFeesCollected || 0n,
     };
     loaded.push(item);
   }
   state.series = loaded;
-  state.byAddress = new Map(loaded.map((item) => [item.address.toLowerCase(), item]));
+  state.byAddress = new Map(
+    loaded.map((item) => [item.address.toLowerCase(), item]),
+  );
   if (!state.byAddress.has(state.selected.toLowerCase()) && loaded.length) {
     state.selected = loaded[0].address;
   }
@@ -490,20 +525,33 @@ async function loadSeriesList() {
 async function loadVault() {
   const provider = readProvider();
   const vault = new Contract(CONFIG.vault, VAULT_ABI, provider);
-  const [owner, series, troveInfo, idle, reserved, minIcr, gasComp, premiumForwarded, expiryForwarded, deposited, btcBalance] =
-    await Promise.all([
-      safe(() => vault.owner()),
-      safe(() => vault.series()),
-      safe(() => vault.troveInfo()),
-      safe(() => vault.idleMUSD()),
-      safe(() => vault.reservedMUSD()),
-      safe(() => vault.minICR()),
-      safe(() => vault.musdGasCompensation()),
-      safe(() => vault.premiumForwarded()),
-      safe(() => vault.expiryForwarded()),
-      safe(() => vault.totalDepositedToSeries()),
-      safe(() => new Contract(CONFIG.btc, ERC20_ABI, provider).balanceOf(CONFIG.vault)),
-    ]);
+  const [
+    owner,
+    series,
+    troveInfo,
+    idle,
+    reserved,
+    minIcr,
+    gasComp,
+    premiumForwarded,
+    expiryForwarded,
+    deposited,
+    btcBalance,
+  ] = await Promise.all([
+    safe(() => vault.owner()),
+    safe(() => vault.series()),
+    safe(() => vault.troveInfo()),
+    safe(() => vault.idleMUSD()),
+    safe(() => vault.reservedMUSD()),
+    safe(() => vault.minICR()),
+    safe(() => vault.musdGasCompensation()),
+    safe(() => vault.premiumForwarded()),
+    safe(() => vault.expiryForwarded()),
+    safe(() => vault.totalDepositedToSeries()),
+    safe(() =>
+      new Contract(CONFIG.btc, ERC20_ABI, provider).balanceOf(CONFIG.vault),
+    ),
+  ]);
 
   state.vault = {
     owner,
@@ -544,7 +592,9 @@ async function loadListings() {
   const count = Number(next);
   const requests = [];
   for (let id = 1; id < count; id += 1) {
-    requests.push(safe(async () => ({ id, listing: await book.getListing(id) })));
+    requests.push(
+      safe(async () => ({ id, listing: await book.getListing(id) })),
+    );
   }
   const results = await Promise.all(requests);
   state.listings = results
@@ -603,7 +653,8 @@ async function loadActivity() {
   const lastBlock = BigInt(toBlock);
   const windows = [];
   for (let start = BigInt(fromBlock); start <= lastBlock; start += chunkSize) {
-    const end = start + chunkSize - 1n > lastBlock ? lastBlock : start + chunkSize - 1n;
+    const end =
+      start + chunkSize - 1n > lastBlock ? lastBlock : start + chunkSize - 1n;
     windows.push([start, end]);
   }
 
@@ -620,7 +671,10 @@ async function loadActivity() {
           for (const log of found) {
             let parsed;
             try {
-              parsed = source.iface.parseLog({ topics: log.topics, data: log.data });
+              parsed = source.iface.parseLog({
+                topics: log.topics,
+                data: log.data,
+              });
             } catch {
               continue;
             }
@@ -661,7 +715,8 @@ async function loadActivity() {
   await Promise.all(
     blockNumbers.map(async (blockNumber) => {
       const block = await safe(() => provider.getBlock(blockNumber));
-      if (block?.timestamp !== undefined) timestamps.set(blockNumber, block.timestamp);
+      if (block?.timestamp !== undefined)
+        timestamps.set(blockNumber, block.timestamp);
     }),
   );
   for (const item of decorated) {
@@ -688,7 +743,10 @@ function describeEvent(parsed, kind, seriesAddress) {
         detail: `${args.symbol} · strike ${fmtAmount(args.strikeRaw, 0)} MUSD/BTC · expires ${fmtDate(args.expiry)}`,
       };
     case "WriterDeposited":
-      return { title: "Writer collateral deposited", detail: `${fmtAmount(args.amount)} MUSD into ${seriesName}` };
+      return {
+        title: "Writer collateral deposited",
+        detail: `${fmtAmount(args.amount)} MUSD into ${seriesName}`,
+      };
     case "Purchased":
       return {
         title: `Purchased ${fmtInt(args.lots)} lots`,
@@ -705,7 +763,10 @@ function describeEvent(parsed, kind, seriesAddress) {
         detail: `${fmtAmount(args.releasedCollateral)} MUSD released to writer ${shortAddress(args.writer)}`,
       };
     case "PremiumWithdrawn":
-      return { title: "Premium withdrawn", detail: `${fmtAmount(args.amount)} MUSD to writer` };
+      return {
+        title: "Premium withdrawn",
+        detail: `${fmtAmount(args.amount)} MUSD to writer`,
+      };
     case "Listed":
       return {
         title: `Listed ${fmtInt(args.lots)} lots`,
@@ -717,39 +778,75 @@ function describeEvent(parsed, kind, seriesAddress) {
         detail: `${fmtAmount(args.musdPaid)} MUSD to seller · buyer ${shortAddress(args.buyer)}`,
       };
     case "Cancelled":
-      return { title: "Ask cancelled", detail: `${fmtInt(args.lotsReturned)} lots returned to seller` };
+      return {
+        title: "Ask cancelled",
+        detail: `${fmtInt(args.lotsReturned)} lots returned to seller`,
+      };
     case "TroveOpened":
       return {
         title: "Mezo trove opened",
         detail: `${fmtAmount(args.collateral)} native BTC collateral · ${fmtAmount(args.debt)} MUSD debt`,
       };
     case "SeriesFunded":
-      return { title: "Series funded", detail: `${fmtAmount(args.amount)} MUSD moved into the series reserve` };
+      return {
+        title: "Series funded",
+        detail: `${fmtAmount(args.amount)} MUSD moved into the series reserve`,
+      };
     case "PremiumForwarded":
-      return { title: "Premium forwarded", detail: `${fmtAmount(args.amount)} MUSD to vault owner` };
+      return {
+        title: "Premium forwarded",
+        detail: `${fmtAmount(args.amount)} MUSD to vault owner`,
+      };
     case "ExpiryReleaseForwarded":
-      return { title: "Expiry release forwarded", detail: `${fmtAmount(args.amount)} MUSD to vault owner` };
+      return {
+        title: "Expiry release forwarded",
+        detail: `${fmtAmount(args.amount)} MUSD to vault owner`,
+      };
     case "TroveClosed":
-      return { title: "Trove closed", detail: `${fmtAmount(args.collateralReturned)} native BTC returned` };
+      return {
+        title: "Trove closed",
+        detail: `${fmtAmount(args.collateralReturned)} native BTC returned`,
+      };
     case "IdleMUSDWithdrawn":
-      return { title: "Idle MUSD withdrawn", detail: `${fmtAmount(args.amount)} MUSD to vault owner` };
+      return {
+        title: "Idle MUSD withdrawn",
+        detail: `${fmtAmount(args.amount)} MUSD to vault owner`,
+      };
     case "BtcWithdrawn":
       return {
         title: "ERC-20 BTC withdrawn",
         detail: `${fmtBtc(args.amount)} to ${shortAddress(args.to)}`,
       };
     case "SeriesBound":
-      return { title: "Vault bound to series", detail: shortAddress(args.series, 10, 6) };
+      return {
+        title: "Vault bound to series",
+        detail: shortAddress(args.series, 10, 6),
+      };
     case "CollateralAdded":
-      return { title: "Native BTC collateral added", detail: `${fmtAmount(args.amount)} BTC` };
+      return {
+        title: "Native BTC collateral added",
+        detail: `${fmtAmount(args.amount)} BTC`,
+      };
     case "CollateralWithdrawn":
-      return { title: "Native BTC collateral withdrawn", detail: `${fmtAmount(args.amount)} BTC` };
+      return {
+        title: "Native BTC collateral withdrawn",
+        detail: `${fmtAmount(args.amount)} BTC`,
+      };
     case "MUSDWithdrawnFromTrove":
-      return { title: "MUSD borrowed from trove", detail: `${fmtAmount(args.amount)} MUSD` };
+      return {
+        title: "MUSD borrowed from trove",
+        detail: `${fmtAmount(args.amount)} MUSD`,
+      };
     case "DebtRepaid":
-      return { title: "Trove debt repaid", detail: `${fmtAmount(args.amount)} MUSD` };
+      return {
+        title: "Trove debt repaid",
+        detail: `${fmtAmount(args.amount)} MUSD`,
+      };
     case "CollateralSurplusClaimed":
-      return { title: "Collateral surplus claimed", detail: `${fmtAmount(args.amount)} native BTC` };
+      return {
+        title: "Collateral surplus claimed",
+        detail: `${fmtAmount(args.amount)} native BTC`,
+      };
     default:
       return null;
   }
@@ -813,15 +910,24 @@ function renderSelectedSeries() {
     setText("ticketStrike", strikeText);
     setText("ticketPremium", premiumText);
     setText("ticketExpiry", fmtDate(series.expiry));
-    if ($("ticketExpiry")) $("ticketExpiry").title = fmtDate(series.expiry, true);
+    if ($("ticketExpiry"))
+      $("ticketExpiry").title = fmtDate(series.expiry, true);
     setText("ticketCountdown", matured ? "matured" : countdown(series.expiry));
     setText("ticketSpot", state.price ? fmtUsd(state.price) : "—");
-    setText("ticketLots", series.activeLots !== null ? fmtInt(series.activeLots) : "—");
+    setText(
+      "ticketLots",
+      series.activeLots !== null ? fmtInt(series.activeLots) : "—",
+    );
     setText("ticketCapacity", capacityText);
 
     const collateral = series.collateral ? Number(series.collateral) : 0;
     const reserved = series.reserved ? Number(series.reserved) : 0;
-    const used = collateral > 0 ? Math.min(100, (reserved / collateral) * 100) : matured ? 100 : 0;
+    const used =
+      collateral > 0
+        ? Math.min(100, (reserved / collateral) * 100)
+        : matured
+          ? 100
+          : 0;
     if ($("ticketMeter")) $("ticketMeter").style.width = `${used}%`;
 
     const writerLink = $("ticketWriter");
@@ -833,7 +939,8 @@ function renderSelectedSeries() {
     }
     setText(
       "ticketWriterType",
-      series.writer && series.writer.toLowerCase() === CONFIG.vault.toLowerCase()
+      series.writer &&
+        series.writer.toLowerCase() === CONFIG.vault.toLowerCase()
         ? "Trove-backed"
         : "EOA writer",
     );
@@ -843,7 +950,8 @@ function renderSelectedSeries() {
   setText("listSeriesName", `${series.name} · ${series.symbol}`);
   if ($("buyStatusChip")) {
     $("buyStatusChip").textContent = status;
-    $("buyStatusChip").className = `chip ${matured ? "is-matured" : "is-active"}`;
+    $("buyStatusChip").className =
+      `chip ${matured ? "is-matured" : "is-active"}`;
   }
 
   setText("tradeSeriesName", `${series.name} · ${series.symbol}`);
@@ -892,7 +1000,9 @@ function renderSelectedSeries() {
   if (paid !== undefined || state.premiumLoaded) {
     setText(
       "statPremium",
-      state.premiumLoaded && paid !== undefined ? `${fmtAmount(paid)} MUSD` : "—",
+      state.premiumLoaded && paid !== undefined
+        ? `${fmtAmount(paid)} MUSD`
+        : "—",
     );
   }
 
@@ -902,19 +1012,26 @@ function renderSelectedSeries() {
 function renderStats(series) {
   if (!$("statSpot")) return;
   setText("statSpot", state.price ? fmtUsd(state.price) : "—");
-  setText("statSpotSub", state.price ? "Mezo PriceFeed · live" : "price unavailable");
+  setText(
+    "statSpotSub",
+    state.price ? "Mezo PriceFeed · live" : "price unavailable",
+  );
   setText(
     "statCollateral",
     series.collateral !== null ? `${fmtAmount(series.collateral)} MUSD` : "—",
   );
-  setText("statSupply", series.totalSupply !== null ? fmtInt(series.totalSupply) : "—");
+  setText(
+    "statSupply",
+    series.totalSupply !== null ? fmtInt(series.totalSupply) : "—",
+  );
 
   const icr = state.trove?.icr;
   const icrText = icr !== null && icr !== undefined ? fmtPct(icr) : "—";
   setText("statIcr", icrText);
   if ($("statIcr") && icr !== null && icr !== undefined) {
     const pct = toNumber(icr) * 100;
-    $("statIcr").style.color = pct < 120 ? "var(--red)" : pct < 150 ? "var(--amber)" : "var(--green)";
+    $("statIcr").style.color =
+      pct < 120 ? "var(--red)" : pct < 150 ? "var(--amber)" : "var(--green)";
   }
   if (state.vault?.minIcr) setText("statMinIcr", fmtPct(state.vault.minIcr));
 }
@@ -926,9 +1043,23 @@ function renderBuyQuote() {
   const lots = Number($("buyLots").value);
   const whole = Number.isFinite(lots) && lots > 0 ? Math.floor(lots) : 0;
   const premium = series.premium ? BigInt(whole) * series.premium : 0n;
+  const fee = series.feeBps ? (premium * series.feeBps) / 10000n : 0n;
+  const totalCharge = premium + fee;
   const payout = series.strikePerLot ? BigInt(whole) * series.strikePerLot : 0n;
   const btc = BigInt(whole) * LOT_RAW;
   $("buyPremium").textContent = `${fmtAmount(premium)} MUSD`;
+  if ($("buyFee")) {
+    $("buyFee").textContent =
+      fee > 0n
+        ? `${fmtAmount(fee)} MUSD (${Number(series.feeBps) / 100}%)`
+        : "—";
+  }
+  if ($("buyTotal")) {
+    $("buyTotal").textContent =
+      fee > 0n
+        ? `${fmtAmount(totalCharge)} MUSD`
+        : `${fmtAmount(premium)} MUSD`;
+  }
   $("buyPayout").textContent = `${fmtAmount(payout)} MUSD`;
   $("buyBtc").textContent = `${fmtAmount(btc, 9)} BTC`;
   const capacity =
@@ -957,14 +1088,22 @@ async function refreshBuyButton() {
   if (matured) {
     label = "Series matured";
     disabled = true;
-  } else if (state.account && series.writer && state.account.toLowerCase() === series.writer.toLowerCase()) {
+  } else if (
+    state.account &&
+    series.writer &&
+    state.account.toLowerCase() === series.writer.toLowerCase()
+  ) {
     label = "Writer cannot buy";
     disabled = true;
   } else if (whole > 0 && BigInt(whole) > capacity) {
     label = "Exceeds remaining capacity";
     disabled = true;
   } else if (whole > 0 && series.premium) {
-    label = `Buy ${whole.toLocaleString("en-US")} lots · ${fmtAmount(BigInt(whole) * series.premium)} MUSD`;
+    const premium = BigInt(whole) * series.premium;
+    const fee = series.feeBps ? (premium * series.feeBps) / 10000n : 0n;
+    const totalCharge = premium + fee;
+    const feeNote = fee > 0n ? ` (+${fmtAmount(fee)} fee)` : "";
+    label = `Buy ${whole.toLocaleString("en-US")} lots · ${fmtAmount(totalCharge)} MUSD${feeNote}`;
   } else if (state.account) {
     label = "Enter lots";
     disabled = true;
@@ -988,7 +1127,11 @@ async function refreshPosition() {
   if ($("secPositionAddress")) {
     setText(
       "secPositionAddress",
-      state.account ? shortAddress(state.account, 6, 4) : watch ? shortAddress(watch, 6, 4) : "No wallet",
+      state.account
+        ? shortAddress(state.account, 6, 4)
+        : watch
+          ? shortAddress(watch, 6, 4)
+          : "No wallet",
     );
   }
   if (!watch || !series) {
@@ -1003,11 +1146,16 @@ async function refreshPosition() {
   const lots = await safe(() => series.contract.balanceOf(watch));
   const lotsNumber = lots === null ? 0 : Number(lots);
   const notional = BigInt(lotsNumber) * LOT_RAW;
-  const value = series.strikePerLot ? BigInt(lotsNumber) * series.strikePerLot : 0n;
+  const value = series.strikePerLot
+    ? BigInt(lotsNumber) * series.strikePerLot
+    : 0n;
 
   setText("posLots", lots === null ? "—" : fmtInt(lots));
   setText("posNotional", `${fmtAmount(notional, 9)} BTC notional`);
-  setText("posMusd", balances.musd !== null ? `${fmtAmount(balances.musd)} MUSD` : "—");
+  setText(
+    "posMusd",
+    balances.musd !== null ? `${fmtAmount(balances.musd)} MUSD` : "—",
+  );
   setText("posBtc", balances.btc !== null ? fmtBtc(balances.btc) : "—");
   setText("posValue", `${fmtAmount(value)} MUSD`);
   setText("posBtcNeed", fmtBtc(notional));
@@ -1015,7 +1163,10 @@ async function refreshPosition() {
 
   setText("secPosLots", lots === null ? "—" : fmtInt(lots));
   setText("secPosBtc", balances.btc !== null ? fmtBtc(balances.btc) : "—");
-  setText("secPosMusd", balances.musd !== null ? `${fmtAmount(balances.musd)} MUSD` : "—");
+  setText(
+    "secPosMusd",
+    balances.musd !== null ? `${fmtAmount(balances.musd)} MUSD` : "—",
+  );
 
   state.position = { lots: lotsNumber, ...balances };
   renderExerciseQuote();
@@ -1043,8 +1194,7 @@ async function refreshExerciseButton() {
   const lots = Number($("exerciseLots").value);
   const whole = Number.isFinite(lots) && lots > 0 ? Math.floor(lots) : 0;
   const matured = isMatured(series);
-  const maxByBtc =
-    position.btc === null ? 0 : Number(position.btc / LOT_RAW);
+  const maxByBtc = position.btc === null ? 0 : Number(position.btc / LOT_RAW);
   let label = "Connect wallet to exercise";
   let disabled = false;
   if (matured) {
@@ -1052,7 +1202,10 @@ async function refreshExerciseButton() {
     disabled = true;
   } else if (!state.account) {
     label = "Connect wallet to exercise";
-  } else if (series.writer && state.account.toLowerCase() === series.writer.toLowerCase()) {
+  } else if (
+    series.writer &&
+    state.account.toLowerCase() === series.writer.toLowerCase()
+  ) {
     label = "Writer cannot exercise";
     disabled = true;
   } else if (position.lots === 0) {
@@ -1112,7 +1265,10 @@ async function refreshListButton() {
     disabled = true;
   } else if (!state.account) {
     label = "Connect wallet to list";
-  } else if (series.writer && state.account.toLowerCase() === series.writer.toLowerCase()) {
+  } else if (
+    series.writer &&
+    state.account.toLowerCase() === series.writer.toLowerCase()
+  ) {
     label = "Writer cannot list";
     disabled = true;
   } else if (position.lots === 0) {
@@ -1136,7 +1292,9 @@ async function refreshListButton() {
 
 function renderWalletState() {
   if (!$("connectLabel") || !$("connectBtn")) return;
-  $("connectLabel").textContent = state.account ? shortAddress(state.account, 6, 4) : "Connect wallet";
+  $("connectLabel").textContent = state.account
+    ? shortAddress(state.account, 6, 4)
+    : "Connect wallet";
   $("connectBtn").title = state.account || "Connect wallet";
   $("connectBtn").classList.toggle("is-connected", Boolean(state.account));
 }
@@ -1151,7 +1309,8 @@ function renderVault() {
     setText("minIcr", fmtPct(vault.minIcr));
     setText("vaultHeroMinIcr", fmtPct(vault.minIcr));
   }
-  if ($("vaultExplorer")) $("vaultExplorer").href = `${CONFIG.explorer}/address/${CONFIG.vault}`;
+  if ($("vaultExplorer"))
+    $("vaultExplorer").href = `${CONFIG.explorer}/address/${CONFIG.vault}`;
 
   if (trove) {
     const { icr, collateral, debt, price, status } = trove;
@@ -1159,7 +1318,11 @@ function renderVault() {
     const statusLabel = statusLabels[status] || `Status ${status}`;
     const icrLabel = debt === 0n ? "No debt" : fmtPct(icr);
     const icrColor =
-      icrPct < 120 ? "var(--red)" : icrPct < 150 ? "var(--amber)" : "var(--green)";
+      icrPct < 120
+        ? "var(--red)"
+        : icrPct < 150
+          ? "var(--amber)"
+          : "var(--green)";
 
     setText("vaultHeroIcr", icrLabel);
     setText("vaultHeroCollateral", fmtBtc(collateral));
@@ -1167,8 +1330,10 @@ function renderVault() {
     setText("vaultHeroStatus", `Status ${statusLabel}`);
     if ($("vaultHeroIcr")) $("vaultHeroIcr").style.color = icrColor;
     if ($("vaultHeroStatusChip")) {
-      $("vaultHeroStatusChip").className = `status-chip${status === 1 ? "" : " is-matured"}`;
-      $("vaultHeroStatusChip").innerHTML = `<span class="live-dot"></span> ${statusLabel}`;
+      $("vaultHeroStatusChip").className =
+        `status-chip${status === 1 ? "" : " is-matured"}`;
+      $("vaultHeroStatusChip").innerHTML =
+        `<span class="live-dot"></span> ${statusLabel}`;
     }
 
     setText("landingTroveCollateral", `${fmtAmount(collateral)} native BTC`);
@@ -1198,17 +1363,33 @@ function renderVault() {
 
   if (!$("troveIcr")) return;
 
-  setText("vaultOwnerLine", vault.owner ? `Owner ${shortAddress(vault.owner, 8, 6)}` : "Owner —");
-  setText("vaultIdle", vault.idle !== null ? `${fmtAmount(vault.idle)} MUSD` : "—");
-  setText("vaultReserved", vault.reserved !== null ? `${fmtAmount(vault.reserved)} MUSD` : "—");
-  setText("vaultBtc", vault.btcBalance !== null ? fmtBtc(vault.btcBalance) : "—");
+  setText(
+    "vaultOwnerLine",
+    vault.owner ? `Owner ${shortAddress(vault.owner, 8, 6)}` : "Owner —",
+  );
+  setText(
+    "vaultIdle",
+    vault.idle !== null ? `${fmtAmount(vault.idle)} MUSD` : "—",
+  );
+  setText(
+    "vaultReserved",
+    vault.reserved !== null ? `${fmtAmount(vault.reserved)} MUSD` : "—",
+  );
+  setText(
+    "vaultBtc",
+    vault.btcBalance !== null ? fmtBtc(vault.btcBalance) : "—",
+  );
   setText(
     "vaultPremium",
-    vault.premiumForwarded !== null ? `${fmtAmount(vault.premiumForwarded)} MUSD` : "—",
+    vault.premiumForwarded !== null
+      ? `${fmtAmount(vault.premiumForwarded)} MUSD`
+      : "—",
   );
   setText(
     "vaultRelease",
-    vault.expiryForwarded !== null ? `${fmtAmount(vault.expiryForwarded)} MUSD` : "—",
+    vault.expiryForwarded !== null
+      ? `${fmtAmount(vault.expiryForwarded)} MUSD`
+      : "—",
   );
   setText(
     "vaultDeposited",
@@ -1229,7 +1410,8 @@ function renderVault() {
   const statusLabel = statusLabels[status] || `Status ${status}`;
   setText("troveIcr", debt === 0n ? "No debt" : fmtPct(icr));
   if ($("troveIcr")) {
-    $("troveIcr").className = `health-number${icrPct < 120 ? " is-danger" : icrPct < 150 ? " is-warning" : ""}`;
+    $("troveIcr").className =
+      `health-number${icrPct < 120 ? " is-danger" : icrPct < 150 ? " is-warning" : ""}`;
   }
   setText("troveCollateral", `${fmtAmount(collateral)} native BTC`);
   setText("troveDebt", `${fmtAmount(debt)} MUSD`);
@@ -1251,15 +1433,20 @@ function renderVault() {
   if ($("healthFill")) {
     $("healthFill").style.width = `${fillWidth}%`;
     $("healthFill").style.background =
-      icrPct < 120 ? "var(--red)" : icrPct < 150 ? "var(--amber)" : "var(--green)";
+      icrPct < 120
+        ? "var(--red)"
+        : icrPct < 150
+          ? "var(--amber)"
+          : "var(--green)";
   }
 }
 
 async function refreshOwnerConsole() {
   if (!state.vault || !$("ownerChip")) return;
   const isOwner = Boolean(
-    state.account && state.vault.owner &&
-      state.account.toLowerCase() === state.vault.owner.toLowerCase(),
+    state.account &&
+    state.vault.owner &&
+    state.account.toLowerCase() === state.vault.owner.toLowerCase(),
   );
   $("ownerChip").textContent = isOwner ? "Owner" : "Read only";
   $("ownerChip").className = `chip ${isOwner ? "is-active" : "chip-soft"}`;
@@ -1270,10 +1457,16 @@ async function refreshOwnerConsole() {
   const boundSeries = state.vault.series
     ? state.byAddress.get(String(state.vault.series).toLowerCase())
     : null;
-  const premiumReady = isOwner && boundSeries && boundSeries.premiumBalance > 0n;
+  const premiumReady =
+    isOwner && boundSeries && boundSeries.premiumBalance > 0n;
   $("ownerPremium").disabled = !premiumReady || state.busy;
-  $("ownerIdle").disabled = !isOwner || !state.vault.idle || state.vault.idle === 0n || state.busy;
-  $("ownerBtc").disabled = !isOwner || !state.vault.btcBalance || state.vault.btcBalance === 0n || state.busy;
+  $("ownerIdle").disabled =
+    !isOwner || !state.vault.idle || state.vault.idle === 0n || state.busy;
+  $("ownerBtc").disabled =
+    !isOwner ||
+    !state.vault.btcBalance ||
+    state.vault.btcBalance === 0n ||
+    state.busy;
 
   const finalizable =
     isOwner && boundSeries && (boundSeries.expired || isMatured(boundSeries));
@@ -1281,10 +1474,13 @@ async function refreshOwnerConsole() {
 
   const troveActive = state.trove && state.trove.status === 1;
   const required =
-    state.trove && state.vault.gasComp !== null && state.trove.debt > state.vault.gasComp
+    state.trove &&
+    state.vault.gasComp !== null &&
+    state.trove.debt > state.vault.gasComp
       ? state.trove.debt - state.vault.gasComp
       : 0n;
-  const closeOwner = state.account && isOwner ? state.account : state.vault.owner;
+  const closeOwner =
+    state.account && isOwner ? state.account : state.vault.owner;
   const ownerBalances = closeOwner
     ? await readTokenBalances(closeOwner)
     : { musd: 0n };
@@ -1302,15 +1498,22 @@ async function refreshOwnerConsole() {
 function renderListings() {
   const body = $("listingsBody");
   const active = state.listings;
-  const totalLots = active.reduce((sum, listing) => sum + Number(listing.remaining), 0);
+  const totalLots = active.reduce(
+    (sum, listing) => sum + Number(listing.remaining),
+    0,
+  );
   const bestPrice = active.reduce(
-    (best, listing) => (best === null || listing.pricePerLot < best ? listing.pricePerLot : best),
+    (best, listing) =>
+      best === null || listing.pricePerLot < best ? listing.pricePerLot : best,
     null,
   );
 
   setText("bookHeroAsks", String(active.length));
   setText("bookHeroLots", `${fmtInt(totalLots)} lots`);
-  setText("bookHeroBest", bestPrice === null ? "—" : `${fmtAmount(bestPrice, 6)} MUSD/lot`);
+  setText(
+    "bookHeroBest",
+    bestPrice === null ? "—" : `${fmtAmount(bestPrice, 6)} MUSD/lot`,
+  );
 
   if (!body) return;
   setText(
@@ -1331,7 +1534,8 @@ function renderListings() {
     const price = listing.pricePerLot;
     const total = price * listing.remaining;
     const isSeller = Boolean(
-      state.account && state.account.toLowerCase() === listing.seller.toLowerCase(),
+      state.account &&
+      state.account.toLowerCase() === listing.seller.toLowerCase(),
     );
     const row = el("tr");
     row.innerHTML = `
@@ -1346,7 +1550,9 @@ function renderListings() {
     const action = el("button", `table-action${isSeller ? " muted" : ""}`);
     action.type = "button";
     action.textContent = isSeller ? "Cancel" : "Fill all";
-    action.title = isSeller ? "Cancel this listing" : `Buy all ${fmtInt(listing.remaining)} lots`;
+    action.title = isSeller
+      ? "Cancel this listing"
+      : `Buy all ${fmtInt(listing.remaining)} lots`;
     action.addEventListener("click", () =>
       isSeller ? cancelListing(listing, action) : fillListing(listing, action),
     );
@@ -1361,7 +1567,9 @@ function renderActivitySummary() {
   setText("activityCount", fmtInt(activity.length));
   setText(
     "activityBlock",
-    state.activityToBlock !== null ? Number(state.activityToBlock).toLocaleString("en-US") : "—",
+    state.activityToBlock !== null
+      ? Number(state.activityToBlock).toLocaleString("en-US")
+      : "—",
   );
   if (activity.length) {
     const earliest = activity.reduce(
@@ -1452,7 +1660,10 @@ function renderContracts() {
       }
     });
   });
-  setText("deployBlockLabel", `Deployed block ${Number(CONFIG.deployBlock).toLocaleString("en-US")}`);
+  setText(
+    "deployBlockLabel",
+    `Deployed block ${Number(CONFIG.deployBlock).toLocaleString("en-US")}`,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -1470,11 +1681,24 @@ async function buyLots(button) {
   const amount = BigInt(lots);
   if (!series.premium) return;
   const premium = amount * series.premium;
-  await withTransaction(button, `Buy ${lots.toLocaleString("en-US")} lots`, async () => {
-    await approveIfNeeded(CONFIG.musd, ERC20_ABI, series.address, premium, "MUSD");
-    const contract = seriesContract(series.address, state.signer);
-    return contract.purchase(amount);
-  });
+  // Include protocol fee in the approval — purchase() pulls premium + fee.
+  const fee = series.feeBps ? (premium * series.feeBps) / 10000n : 0n;
+  const totalCharge = premium + fee;
+  await withTransaction(
+    button,
+    `Buy ${lots.toLocaleString("en-US")} lots`,
+    async () => {
+      await approveIfNeeded(
+        CONFIG.musd,
+        ERC20_ABI,
+        series.address,
+        totalCharge,
+        "MUSD",
+      );
+      const contract = seriesContract(series.address, state.signer);
+      return contract.purchase(amount);
+    },
+  );
 }
 
 async function exerciseLots(button) {
@@ -1487,11 +1711,21 @@ async function exerciseLots(button) {
   }
   const amount = BigInt(lots);
   const btcNeeded = amount * LOT_RAW;
-  await withTransaction(button, `Exercise ${lots.toLocaleString("en-US")} lots`, async () => {
-    await approveIfNeeded(CONFIG.btc, ERC20_ABI, series.address, btcNeeded, "ERC-20 BTC");
-    const contract = seriesContract(series.address, state.signer);
-    return contract.exercise(amount);
-  });
+  await withTransaction(
+    button,
+    `Exercise ${lots.toLocaleString("en-US")} lots`,
+    async () => {
+      await approveIfNeeded(
+        CONFIG.btc,
+        ERC20_ABI,
+        series.address,
+        btcNeeded,
+        "ERC-20 BTC",
+      );
+      const contract = seriesContract(series.address, state.signer);
+      return contract.exercise(amount);
+    },
+  );
 }
 
 async function listLots(button) {
@@ -1509,21 +1743,41 @@ async function listLots(button) {
   }
   const amount = BigInt(lots);
   const priceRaw = parseUnits(String(price), 18);
-  await withTransaction(button, `List ${lots.toLocaleString("en-US")} lots`, async () => {
-    await approveIfNeeded(series.address, SERIES_ABI, CONFIG.orderBook, amount, "position lots");
-    const book = new Contract(CONFIG.orderBook, BOOK_ABI, state.signer);
-    return book.list(series.address, amount, priceRaw);
-  });
+  await withTransaction(
+    button,
+    `List ${lots.toLocaleString("en-US")} lots`,
+    async () => {
+      await approveIfNeeded(
+        series.address,
+        SERIES_ABI,
+        CONFIG.orderBook,
+        amount,
+        "position lots",
+      );
+      const book = new Contract(CONFIG.orderBook, BOOK_ABI, state.signer);
+      return book.list(series.address, amount, priceRaw);
+    },
+  );
 }
 
 async function fillListing(listing, button) {
   if (!(await ensureWallet())) return;
   const total = listing.pricePerLot * listing.remaining;
-  await withTransaction(button, `Fill ${fmtInt(listing.remaining)} lots`, async () => {
-    await approveIfNeeded(CONFIG.musd, ERC20_ABI, CONFIG.orderBook, total, "MUSD");
-    const book = new Contract(CONFIG.orderBook, BOOK_ABI, state.signer);
-    return book.fill(listing.id, listing.remaining);
-  });
+  await withTransaction(
+    button,
+    `Fill ${fmtInt(listing.remaining)} lots`,
+    async () => {
+      await approveIfNeeded(
+        CONFIG.musd,
+        ERC20_ABI,
+        CONFIG.orderBook,
+        total,
+        "MUSD",
+      );
+      const book = new Contract(CONFIG.orderBook, BOOK_ABI, state.signer);
+      return book.fill(listing.id, listing.remaining);
+    },
+  );
 }
 
 async function cancelListing(listing, button) {
@@ -1584,14 +1838,24 @@ async function withTransaction(button, label, action) {
   const original = button.textContent;
   button.disabled = true;
   button.classList.add("is-loading");
-  const pending = toast(label, "Confirm the transaction in your wallet.", "pending");
+  const pending = toast(
+    label,
+    "Confirm the transaction in your wallet.",
+    "pending",
+  );
   try {
     const tx = await action();
     removeToast(pending);
-    const submitted = toast(label, "Transaction submitted. Waiting for confirmation…", "pending", tx.hash);
+    const submitted = toast(
+      label,
+      "Transaction submitted. Waiting for confirmation…",
+      "pending",
+      tx.hash,
+    );
     const receipt = await tx.wait();
     removeToast(submitted);
-    if (receipt?.status === 0) throw new Error("Transaction reverted on-chain.");
+    if (receipt?.status === 0)
+      throw new Error("Transaction reverted on-chain.");
     toast(label, "Confirmed on Mezo testnet.", "success", tx.hash);
     await refreshAll();
   } catch (error) {
@@ -1714,7 +1978,11 @@ function wireEvents() {
   on("refreshListings", "click", async () => {
     await loadListings();
     renderListings();
-    toast("Order book refreshed", "Open asks reloaded from Mezo testnet.", "success");
+    toast(
+      "Order book refreshed",
+      "Open asks reloaded from Mezo testnet.",
+      "success",
+    );
   });
 
   on("watchBtn", "click", async () => {
@@ -1738,7 +2006,9 @@ function wireEvents() {
     if (event.key === "Enter") $("watchBtn")?.click();
   });
 
-  on("ownerPremium", "click", (event) => ownerWithdrawPremium(event.currentTarget));
+  on("ownerPremium", "click", (event) =>
+    ownerWithdrawPremium(event.currentTarget),
+  );
   on("ownerIdle", "click", (event) => ownerWithdrawIdle(event.currentTarget));
   on("ownerBtc", "click", (event) => ownerWithdrawBtc(event.currentTarget));
   on("ownerFinalize", "click", (event) => ownerFinalize(event.currentTarget));
@@ -1761,7 +2031,9 @@ function wireEvents() {
   });
 
   window.addEventListener("scroll", () => {
-    document.querySelector(".site-header")?.classList.toggle("is-scrolled", window.scrollY > 8);
+    document
+      .querySelector(".site-header")
+      ?.classList.toggle("is-scrolled", window.scrollY > 8);
   });
 
   setInterval(() => {

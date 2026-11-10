@@ -16,7 +16,8 @@ interface Vm {
 }
 
 abstract contract TestBase {
-    Vm internal constant vm = Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
+    Vm internal constant vm =
+        Vm(address(uint160(uint256(keccak256("hevm cheat code")))));
 
     address internal constant writer = address(0xA11CE);
     address internal constant alice = address(0xB0B);
@@ -24,11 +25,15 @@ abstract contract TestBase {
     address internal constant carol = address(0xD00D);
     address internal constant attacker = address(0xBAD);
     address internal constant spender = address(0x515E);
+    /// @dev Protocol fee recipient shared across test fixtures.
+    address internal constant feeRecipient = address(0xFEE0);
 
     uint256 internal constant K_RAW = 80_000 * 1e18;
     uint256 internal constant STRIKE_PER_LOT = 80_000 * 1e12; // 0.08 MUSD / lot
     uint256 internal constant PREMIUM_PER_LOT = 1e15; // 0.001 MUSD / lot
     uint256 internal constant WAD = 1e18;
+    /// @dev 50 bps (0.5%) protocol fee used in tests that exercise the fee path.
+    uint256 internal constant FEE_BPS = 50;
 
     MockERC20 internal musd;
     MockERC20 internal btc;
@@ -47,7 +52,9 @@ abstract contract TestBase {
             PREMIUM_PER_LOT,
             expiryTime,
             "Roster Mezo BTC Put Series",
-            "RBTC-PUT"
+            "RBTC-PUT",
+            feeRecipient,
+            FEE_BPS
         );
 
         musd.mint(writer, 1_000_000 * WAD);
@@ -85,31 +92,58 @@ abstract contract TestBase {
     }
 
     function _checkLiveAccounting() internal view {
-        _assertEq(series.collateral_balance_raw(), series.reserved_raw() + series.excess_raw(), "collateral split");
-        _assertEq(series.reserved_raw(), series.active_lots() * series.strike_per_lot_raw(), "reserve formula");
-        _assertEq(series.totalSupply(), series.active_lots(), "live supply formula");
+        _assertEq(
+            series.collateral_balance_raw(),
+            series.reserved_raw() + series.excess_raw(),
+            "collateral split"
+        );
+        _assertEq(
+            series.reserved_raw(),
+            series.active_lots() * series.strike_per_lot_raw(),
+            "reserve formula"
+        );
+        _assertEq(
+            series.totalSupply(),
+            series.active_lots(),
+            "live supply formula"
+        );
         _checkAudit();
         _checkSolvency();
     }
 
     function _checkAudit() internal view {
         _assertEq(
-            series.total_deposited_raw() - series.total_payouts_raw() - series.expiry_release_raw(),
+            series.total_deposited_raw() -
+                series.total_payouts_raw() -
+                series.expiry_release_raw(),
             series.collateral_balance_raw(),
             "audit identity"
         );
     }
 
     function _checkSolvency() internal view {
-        uint256 liabilities = series.collateral_balance_raw() + series.premium_balance_raw();
-        _assertTrue(musd.balanceOf(address(series)) >= liabilities, "MUSD solvency");
+        // Solvency: series holds collateral + premium (fees have already left).
+        uint256 liabilities = series.collateral_balance_raw() +
+            series.premium_balance_raw();
+        _assertTrue(
+            musd.balanceOf(address(series)) >= liabilities,
+            "MUSD solvency"
+        );
     }
 
-    function _assertEq(uint256 a, uint256 b, string memory reason) internal pure {
+    function _assertEq(
+        uint256 a,
+        uint256 b,
+        string memory reason
+    ) internal pure {
         require(a == b, reason);
     }
 
-    function _assertEq(address a, address b, string memory reason) internal pure {
+    function _assertEq(
+        address a,
+        address b,
+        string memory reason
+    ) internal pure {
         require(a == b, reason);
     }
 
@@ -117,7 +151,11 @@ abstract contract TestBase {
         require(a == b, reason);
     }
 
-    function _assertEq(string memory a, string memory b, string memory reason) internal pure {
+    function _assertEq(
+        string memory a,
+        string memory b,
+        string memory reason
+    ) internal pure {
         require(keccak256(bytes(a)) == keccak256(bytes(b)), reason);
     }
 

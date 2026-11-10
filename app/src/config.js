@@ -10,15 +10,16 @@ export const CONFIG = {
   btc: "0x7b7C000000000000000000000000000000000000",
   priceFeed: "0x86bCF0841622a5dAC14A313a15f96A95421b9366",
 
-  factory: "0xEeCCD2bb5c0605F3eaCDC4dA221D9bdeDa580D2F",
-  orderBook: "0xc97B2fe5ba7e68ed7b52a657a137Cf636149cd25",
-  vault: "0x214e2316EAEeE24c1dc5d8433329fFC7544DA331",
-  series: "0xC23167867baAF830D586598DE0634E26fD895b92",
+  // Wave 2 deployment — fee-enabled contracts
+  factory: "0x1ee9eCc9E526c41c9D190dDD06FF286deb6727c9",
+  orderBook: "0xeecAb683D93a483669D797E4B7a06e8c286A25dC",
+  vault: "0xc3Ff91EF99fcB8AE19CAc7698BB1eFAAd704C243",
+  series: "0x68540003Ee52F73C3F2D8D6508227E8eCd5E767b",
 
   deployer: "0x90356CF97B3BF1749A604d3F89b3DF3602A459E3",
   buyer: "0x1A1A70AF037123dda8A1B49BA245234f318Dd3b5",
 
-  deployBlock: 0xf99f8c,
+  deployBlock: 0xfecd03,
   demoSeries: "0xCC6bEA372b4947D31303FAb5d13C2f984d68FA43",
 
   links: {
@@ -52,6 +53,10 @@ export const SERIES_ABI = [
   "function premium_balance_raw() view returns (uint256)",
   "function active_lots() view returns (uint256)",
   "function expired() view returns (bool)",
+  // Wave 2: protocol fee fields
+  "function feeBps() view returns (uint256)",
+  "function feeRecipient() view returns (address)",
+  "function total_fees_collected_raw() view returns (uint256)",
   "function deposit(uint256)",
   "function purchase(uint256)",
   "function exercise(uint256)",
@@ -62,11 +67,16 @@ export const SERIES_ABI = [
   "event Exercised(address indexed holder, uint256 lots, uint256 btcAmount, uint256 musdPayout)",
   "event SeriesExpired(address indexed writer, uint256 releasedCollateral)",
   "event PremiumWithdrawn(address indexed writer, uint256 amount)",
+  "event ProtocolFeeCollected(address indexed feeRecipient, uint256 amount)",
   "event Transfer(address indexed from, address indexed to, uint256 value)",
   "event Approval(address indexed owner, address indexed spender, uint256 value)",
 ];
 
 export const FACTORY_ABI = [
+  "function musd() view returns (address)",
+  "function btc() view returns (address)",
+  "function feeBps() view returns (uint256)",
+  "function feeRecipient() view returns (address)",
   "function seriesCount() view returns (uint256)",
   "function seriesAt(uint256) view returns (address)",
   "function allSeries() view returns (address[])",
@@ -76,13 +86,18 @@ export const FACTORY_ABI = [
 
 export const BOOK_ABI = [
   "function nextListingId() view returns (uint256)",
+  "function fillFeeBps() view returns (uint256)",
+  "function feeRecipient() view returns (address)",
+  "function accruedFees() view returns (uint256)",
   "function getListing(uint256) view returns (tuple(address seller, address series, uint256 pricePerLot, uint256 remaining, bool active))",
   "function list(address,uint256,uint256) returns (uint256)",
   "function fill(uint256,uint256)",
   "function cancel(uint256)",
+  "function sweepFees()",
   "event Listed(uint256 indexed listingId, address indexed seller, address indexed series, uint256 lots, uint256 pricePerLot)",
-  "event Filled(uint256 indexed listingId, address indexed buyer, uint256 lots, uint256 musdPaid)",
+  "event Filled(uint256 indexed listingId, address indexed buyer, uint256 lots, uint256 grossPaid, uint256 feeCharged)",
   "event Cancelled(uint256 indexed listingId, uint256 lotsReturned)",
+  "event FeeSwept(address indexed feeRecipient, uint256 amount)",
 ];
 
 export const VAULT_ABI = [
@@ -99,12 +114,16 @@ export const VAULT_ABI = [
   "function totalDepositedToSeries() view returns (uint256)",
   "function troveInfo() view returns (uint256 collateral, uint256 debt, uint256 icr, uint256 price, uint8 status)",
   "function seriesState() view returns (uint256 collateral, uint256 premium, uint256 activeLots, bool expired)",
+  // Wave 2: Recovery Mode views
+  "function isInRecoveryMode() view returns (bool)",
+  "function systemTCR() view returns (uint256)",
   "function withdrawPremium()",
   "function withdrawIdleMUSD(uint256)",
   "function withdrawBtc(address,uint256)",
   "function finalize() returns (uint256,uint256)",
   "function closeTrove()",
   "function repay(uint256,address,address)",
+  "function claimCollateral() returns (uint256)",
   "event SeriesBound(address indexed series)",
   "event TroveOpened(uint256 collateral, uint256 debt, uint256 seriesDeposit)",
   "event SeriesFunded(uint256 amount)",
@@ -118,6 +137,7 @@ export const VAULT_ABI = [
   "event CollateralSurplusClaimed(uint256 amount)",
   "event BtcWithdrawn(address indexed to, uint256 amount)",
   "event IdleMUSDWithdrawn(uint256 amount)",
+  "event RecoveryModeBlocked(uint256 tcr)",
 ];
 
 export const ERC20_ABI = [

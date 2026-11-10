@@ -4,11 +4,27 @@ pragma solidity ^0.8.24;
 import {IERC20, ReentrancyGuard, RosterBtcPutSeries, SafeERC20} from "./RosterBtcPutSeries.sol";
 
 interface IBorrowerOperations {
-    function openTrove(uint256 debtAmount, address upperHint, address lowerHint) external payable;
+    function openTrove(
+        uint256 debtAmount,
+        address upperHint,
+        address lowerHint
+    ) external payable;
     function addColl(address upperHint, address lowerHint) external payable;
-    function withdrawColl(uint256 amount, address upperHint, address lowerHint) external;
-    function withdrawMUSD(uint256 amount, address upperHint, address lowerHint) external;
-    function repayMUSD(uint256 amount, address upperHint, address lowerHint) external;
+    function withdrawColl(
+        uint256 amount,
+        address upperHint,
+        address lowerHint
+    ) external;
+    function withdrawMUSD(
+        uint256 amount,
+        address upperHint,
+        address lowerHint
+    ) external;
+    function repayMUSD(
+        uint256 amount,
+        address upperHint,
+        address lowerHint
+    ) external;
     function closeTrove() external;
     function claimCollateral() external;
     function activePool() external view returns (address);
@@ -21,7 +37,15 @@ interface ITroveManager {
     function getTroveStatus(address borrower) external view returns (uint8);
     function getTroveDebt(address borrower) external view returns (uint256);
     function getTroveColl(address borrower) external view returns (uint256);
-    function getCurrentICR(address borrower, uint256 price) external view returns (uint256);
+    function getCurrentICR(
+        address borrower,
+        uint256 price
+    ) external view returns (uint256);
+    /// @dev Returns the Total Collateral Ratio of the system (sum of all trove collateral
+    ///      over total MUSD supply). Mezo enters Recovery Mode when TCR < CCR (150%).
+    function getTCR(uint256 price) external view returns (uint256);
+    /// @dev True when the system is in Recovery Mode (TCR < CCR).
+    function checkRecoveryMode(uint256 price) external view returns (bool);
 }
 
 interface IMezoPriceFeed {
@@ -64,6 +88,10 @@ contract RosterTroveWriter is ReentrancyGuard {
     error UnexpectedNativeAmount();
     error UnexpectedNativeSender();
     error NoDebt();
+    /// @notice Reverts when Mezo is in Recovery Mode and the operation would increase
+    ///         system indebtedness. The writer is long BTC through the trove and must
+    ///         not worsen the system's collateral ratio during stressed conditions.
+    error RecoveryModeActive(uint256 tcr);
 
     address public owner;
     IBorrowerOperations public immutable borrowerOperations;
@@ -84,7 +112,10 @@ contract RosterTroveWriter is ReentrancyGuard {
     uint256 public premiumForwarded;
     uint256 public expiryForwarded;
 
-    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    event OwnershipTransferred(
+        address indexed previousOwner,
+        address indexed newOwner
+    );
     event MinICRUpdated(uint256 minICR);
     event SeriesBound(address indexed series);
     event TroveOpened(uint256 collateral, uint256 debt, uint256 seriesDeposit);
@@ -99,6 +130,7 @@ contract RosterTroveWriter is ReentrancyGuard {
     event CollateralSurplusClaimed(uint256 amount);
     event BtcWithdrawn(address indexed to, uint256 amount);
     event IdleMUSDWithdrawn(uint256 amount);
+    event RecoveryModeBlocked(uint256 tcr);
 
     modifier onlyOwner() {
         if (msg.sender != owner) revert OnlyOwner();
@@ -115,18 +147,31 @@ contract RosterTroveWriter is ReentrancyGuard {
         uint256 minICR_
     ) {
         if (
-            owner_ == address(0) || borrowerOperations_ == address(0) || troveManager_ == address(0)
-                || priceFeed_ == address(0) || musd_ == address(0) || btc_ == address(0)
+            owner_ == address(0) ||
+            borrowerOperations_ == address(0) ||
+            troveManager_ == address(0) ||
+            priceFeed_ == address(0) ||
+            musd_ == address(0) ||
+            btc_ == address(0)
         ) revert ZeroAddress();
-        if (borrowerOperations_.code.length == 0 || troveManager_.code.length == 0 || priceFeed_.code.length == 0) {
+        if (
+            borrowerOperations_.code.length == 0 ||
+            troveManager_.code.length == 0 ||
+            priceFeed_.code.length == 0
+        ) {
             revert NotAContract();
         }
-        if (minICR_ < MIN_ALLOWED_ICR || minICR_ > MAX_ALLOWED_ICR) revert InvalidMinICR();
+        if (minICR_ < MIN_ALLOWED_ICR || minICR_ > MAX_ALLOWED_ICR)
+            revert InvalidMinICR();
 
-        address activePool_ = IBorrowerOperations(borrowerOperations_).activePool();
-        address collSurplusPool_ = IBorrowerOperations(borrowerOperations_).collSurplusPool();
-        if (activePool_ == address(0) || collSurplusPool_ == address(0)) revert ZeroAddress();
-        if (activePool_.code.length == 0 || collSurplusPool_.code.length == 0) revert NotAContract();
+        address activePool_ = IBorrowerOperations(borrowerOperations_)
+            .activePool();
+        address collSurplusPool_ = IBorrowerOperations(borrowerOperations_)
+            .collSurplusPool();
+        if (activePool_ == address(0) || collSurplusPool_ == address(0))
+            revert ZeroAddress();
+        if (activePool_.code.length == 0 || collSurplusPool_.code.length == 0)
+            revert NotAContract();
 
         owner = owner_;
         borrowerOperations = IBorrowerOperations(borrowerOperations_);
@@ -136,7 +181,8 @@ contract RosterTroveWriter is ReentrancyGuard {
         btc = IERC20(btc_);
         activePool = activePool_;
         collSurplusPool = collSurplusPool_;
-        musdGasCompensation = IBorrowerOperations(borrowerOperations_).MUSD_GAS_COMPENSATION();
+        musdGasCompensation = IBorrowerOperations(borrowerOperations_)
+            .MUSD_GAS_COMPENSATION();
         minICR = minICR_;
     }
 
@@ -153,7 +199,8 @@ contract RosterTroveWriter is ReentrancyGuard {
     ///         this vault as writer and use the same MUSD and BTC assets.
     function bindSeries(address seriesAddress) external onlyOwner {
         if (seriesBound) revert SeriesAlreadyBound();
-        if (seriesAddress == address(0) || seriesAddress.code.length == 0) revert InvalidSeries();
+        if (seriesAddress == address(0) || seriesAddress.code.length == 0)
+            revert InvalidSeries();
         RosterBtcPutSeries candidate = RosterBtcPutSeries(seriesAddress);
         if (candidate.writer() != address(this)) revert InvalidSeries();
         if (address(candidate.musd()) != address(musd)) revert InvalidSeries();
@@ -170,42 +217,60 @@ contract RosterTroveWriter is ReentrancyGuard {
     }
 
     function setMinICR(uint256 newMinICR) external onlyOwner {
-        if (newMinICR < MIN_ALLOWED_ICR || newMinICR > MAX_ALLOWED_ICR) revert InvalidMinICR();
+        if (newMinICR < MIN_ALLOWED_ICR || newMinICR > MAX_ALLOWED_ICR)
+            revert InvalidMinICR();
         minICR = newMinICR;
         emit MinICRUpdated(newMinICR);
     }
 
     /// @notice Open a Mezo trove with native BTC, borrow MUSD, and deposit part of it
     ///         into this vault's series. Interest and debt remain the owner's obligation.
-    function openAndFund(uint256 debtAmount, uint256 seriesDeposit, address upperHint, address lowerHint)
-        external
-        payable
-        onlyOwner
-        nonReentrant
-    {
+    function openAndFund(
+        uint256 debtAmount,
+        uint256 seriesDeposit,
+        address upperHint,
+        address lowerHint
+    ) external payable onlyOwner nonReentrant {
         _requireSeriesBound();
         if (troveManager.getTroveStatus(address(this)) == TROVE_STATUS_ACTIVE) {
             revert TroveAlreadyOpen();
         }
         if (msg.value == 0) revert NoCollateral();
-        if (seriesDeposit == 0 || seriesDeposit > debtAmount) revert InvalidDeposit();
+        if (seriesDeposit == 0 || seriesDeposit > debtAmount)
+            revert InvalidDeposit();
 
-        borrowerOperations.openTrove{value: msg.value}(debtAmount, upperHint, lowerHint);
+        // Opening a trove increases system debt. Block during Recovery Mode so the
+        // vault cannot worsen a system-level collateral crisis.
+        _requireNotRecoveryMode();
 
-        if (musd.balanceOf(address(this)) < seriesDeposit) revert InsufficientMUSD();
+        borrowerOperations.openTrove{value: msg.value}(
+            debtAmount,
+            upperHint,
+            lowerHint
+        );
+
+        if (musd.balanceOf(address(this)) < seriesDeposit)
+            revert InsufficientMUSD();
         _fundSeries(seriesDeposit);
         _checkICR();
         emit TroveOpened(msg.value, debtAmount, seriesDeposit);
     }
 
-    function addCollateral(address upperHint, address lowerHint) external payable onlyOwner nonReentrant {
+    function addCollateral(
+        address upperHint,
+        address lowerHint
+    ) external payable onlyOwner nonReentrant {
         _requireActiveTrove();
         if (msg.value == 0) revert NoCollateral();
         borrowerOperations.addColl{value: msg.value}(upperHint, lowerHint);
         emit CollateralAdded(msg.value);
     }
 
-    function withdrawCollateral(uint256 amount, address upperHint, address lowerHint) external onlyOwner nonReentrant {
+    function withdrawCollateral(
+        uint256 amount,
+        address upperHint,
+        address lowerHint
+    ) external onlyOwner nonReentrant {
         _requireActiveTrove();
         if (amount == 0) revert NothingToWithdraw();
         uint256 before = address(this).balance;
@@ -217,9 +282,15 @@ contract RosterTroveWriter is ReentrancyGuard {
         emit CollateralWithdrawn(amount);
     }
 
-    function borrowMore(uint256 amount, address upperHint, address lowerHint) external onlyOwner nonReentrant {
+    function borrowMore(
+        uint256 amount,
+        address upperHint,
+        address lowerHint
+    ) external onlyOwner nonReentrant {
         _requireActiveTrove();
         if (amount == 0) revert NothingToWithdraw();
+        // Borrowing more increases system debt. Block during Recovery Mode.
+        _requireNotRecoveryMode();
         borrowerOperations.withdrawMUSD(amount, upperHint, lowerHint);
         _checkICR();
         emit MUSDWithdrawnFromTrove(amount);
@@ -235,7 +306,11 @@ contract RosterTroveWriter is ReentrancyGuard {
     }
 
     /// @notice Partial repayment. Mezo burns MUSD directly from this vault.
-    function repay(uint256 amount, address upperHint, address lowerHint) external onlyOwner nonReentrant {
+    function repay(
+        uint256 amount,
+        address upperHint,
+        address lowerHint
+    ) external onlyOwner nonReentrant {
         _requireActiveTrove();
         if (amount == 0) revert NothingToWithdraw();
         musd.safeTransferFrom(msg.sender, address(this), amount);
@@ -268,7 +343,12 @@ contract RosterTroveWriter is ReentrancyGuard {
     }
 
     /// @notice Recover collateral surplus after a redemption or liquidation.
-    function claimCollateral() external onlyOwner nonReentrant returns (uint256 received) {
+    function claimCollateral()
+        external
+        onlyOwner
+        nonReentrant
+        returns (uint256 received)
+    {
         uint256 before = address(this).balance;
         borrowerOperations.claimCollateral();
         received = address(this).balance - before;
@@ -278,7 +358,12 @@ contract RosterTroveWriter is ReentrancyGuard {
     }
 
     /// @notice Withdraw premium earned by the series and forward it to the owner.
-    function withdrawPremium() external onlyOwner nonReentrant returns (uint256 amount) {
+    function withdrawPremium()
+        external
+        onlyOwner
+        nonReentrant
+        returns (uint256 amount)
+    {
         _requireSeriesBound();
         amount = series.premium_balance_raw();
         if (amount == 0) revert NoPremium();
@@ -290,7 +375,12 @@ contract RosterTroveWriter is ReentrancyGuard {
 
     /// @notice Finalize an expired series. Tracks releases so collateral already sent by
     ///         a third-party expire() call is still forwarded exactly once.
-    function finalize() external onlyOwner nonReentrant returns (uint256 expiryRelease, uint256 premium) {
+    function finalize()
+        external
+        onlyOwner
+        nonReentrant
+        returns (uint256 expiryRelease, uint256 premium)
+    {
         _requireSeriesBound();
         series.expire();
 
@@ -313,7 +403,10 @@ contract RosterTroveWriter is ReentrancyGuard {
 
     /// @notice Withdraw ERC-20 BTC received from physical exercise. Native trove BTC is
     ///         separate and leaves through withdrawCollateral() or closeTrove().
-    function withdrawBtc(address to, uint256 amount) external onlyOwner nonReentrant {
+    function withdrawBtc(
+        address to,
+        uint256 amount
+    ) external onlyOwner nonReentrant {
         if (to == address(0)) revert ZeroAddress();
         if (amount == 0) revert NothingToWithdraw();
         btc.safeTransfer(to, amount);
@@ -330,7 +423,8 @@ contract RosterTroveWriter is ReentrancyGuard {
     }
 
     function isTroveActive() public view returns (bool) {
-        return troveManager.getTroveStatus(address(this)) == TROVE_STATUS_ACTIVE;
+        return
+            troveManager.getTroveStatus(address(this)) == TROVE_STATUS_ACTIVE;
     }
 
     /// @notice MUSD held by the vault that is not reserved for series expiry collateral.
@@ -348,19 +442,32 @@ contract RosterTroveWriter is ReentrancyGuard {
     function troveInfo()
         external
         view
-        returns (uint256 collateral, uint256 debt, uint256 icr, uint256 price, uint8 status)
+        returns (
+            uint256 collateral,
+            uint256 debt,
+            uint256 icr,
+            uint256 price,
+            uint8 status
+        )
     {
         price = priceFeed.fetchPrice();
         collateral = troveManager.getTroveColl(address(this));
         debt = troveManager.getTroveDebt(address(this));
         status = troveManager.getTroveStatus(address(this));
-        icr = debt == 0 ? type(uint256).max : troveManager.getCurrentICR(address(this), price);
+        icr = debt == 0
+            ? type(uint256).max
+            : troveManager.getCurrentICR(address(this), price);
     }
 
     function seriesState()
         external
         view
-        returns (uint256 collateral, uint256 premium, uint256 activeLots, bool expired)
+        returns (
+            uint256 collateral,
+            uint256 premium,
+            uint256 activeLots,
+            bool expired
+        )
     {
         if (!seriesBound) {
             return (0, 0, 0, false);
@@ -369,6 +476,17 @@ contract RosterTroveWriter is ReentrancyGuard {
         premium = series.premium_balance_raw();
         activeLots = series.active_lots();
         expired = series.expired();
+    }
+
+    /// @notice Current system Total Collateral Ratio. Falls below 1.5e18 in Recovery Mode.
+    function systemTCR() external view returns (uint256) {
+        return troveManager.getTCR(priceFeed.fetchPrice());
+    }
+
+    /// @notice True when the Mezo system is in Recovery Mode (TCR < 150%).
+    ///         During Recovery Mode, openAndFund and borrowMore are blocked.
+    function isInRecoveryMode() external view returns (bool) {
+        return troveManager.checkRecoveryMode(priceFeed.fetchPrice());
     }
 
     function _requireSeriesBound() private view {
@@ -381,8 +499,24 @@ contract RosterTroveWriter is ReentrancyGuard {
     }
 
     function _checkICR() private view {
-        uint256 icr = troveManager.getCurrentICR(address(this), priceFeed.fetchPrice());
+        uint256 icr = troveManager.getCurrentICR(
+            address(this),
+            priceFeed.fetchPrice()
+        );
         if (icr < minICR) revert ICRTooLow(icr);
+    }
+
+    /// @dev Reverts with RecoveryModeActive when the system TCR is below Mezo's CCR.
+    ///      This protects the protocol by blocking new debt that would deepen a system crisis.
+    ///      Repayments, collateral additions, and closures are explicitly allowed during
+    ///      Recovery Mode — they all improve or preserve the system TCR.
+    function _requireNotRecoveryMode() private view {
+        uint256 price = priceFeed.fetchPrice();
+        bool inRecoveryMode = troveManager.checkRecoveryMode(price);
+        if (inRecoveryMode) {
+            uint256 tcr = troveManager.getTCR(price);
+            revert RecoveryModeActive(tcr);
+        }
     }
 
     function _reservedSeriesProceeds() private view returns (uint256) {
@@ -399,7 +533,7 @@ contract RosterTroveWriter is ReentrancyGuard {
     }
 
     function _sendNative(address to, uint256 amount) private {
-        (bool ok,) = to.call{value: amount}("");
+        (bool ok, ) = to.call{value: amount}("");
         if (!ok) revert NativeTransferFailed();
     }
 }

@@ -52,31 +52,34 @@ scope, changes since Wave 1, and acceptance criteria are in
 
 ## 1. Status at a glance
 
-| Area | Status |
-| --- | --- |
-| Network | Mezo testnet, chain ID `31611` |
-| Main series | `0xC23167867baAF830D586598DE0634E26fD895b92`, active |
-| Series writer | `0x214e2316EAEeE24c1dc5d8433329fFC7544DA331` (`RosterTroveWriter`) |
-| Position wrapper | `0x4726a021ec380a755EBE883BEb800A5d06723E41` (`RosterPositionWrapper`) |
-| External pool | `0xED305fEF4c11f95dAe1d144e78B2B62be50965F2` (`vAMM-MUSD/wRBTC-PUT`) |
-| Main expiry | `1795519026` — **2026-11-24 11:17:06 UTC** |
-| Strike | **80,000 MUSD per BTC** (`K_raw = 80000e18`) |
-| Premium | **0.001 MUSD per lot** (`1e15` raw) |
-| Lot size | **0.000001 BTC** (`1e12` raw, 18-decimal ERC-20 BTC) |
-| Series collateral | **1,497.92 MUSD** after 26 lots exercised; 74 active lots |
-| Trove (snapshot 2026-10-26 10:15 UTC) | **0.043 native BTC**, debt **2,202.057203102504956752 MUSD**, ICR **156.856%** |
-| Secondary book | `0xc97B2fe5ba7e68ed7b52a657a137Cf636149cd25`; listing 1 open |
-| Factory | `0xEeCCD2bb5c0605F3eaCDC4dA221D9bdeDa580D2F` |
-| Tests | **91/91** default profile; **91/91** CI profile |
-| Short-dated demo series | `0xCC6bEA372b4947D31303FAb5d13C2f984d68FA43`; expired 2026-10-25, 20 MUSD released, 10 tokens frozen |
-| External composability | **Demonstrated**: wrapper/MUSD pool seeded with 15 actual lots; a third-party account swapped and exercised 1 lot |
-| Audit | **None** |
-| Organic demand | **None observed**; the buyer and external account are generated demo accounts |
-| Trove closure | **Not demonstrated**; MUSD shortfall |
-| Main expiry/finalize | **Not reached** |
-| Web application | **Implemented, production build passes, and hosted** at [roster-mezo.vercel.app](https://roster-mezo.vercel.app/); five-page read-only browser pass; no wallet transaction performed through the UI |
-| Browser evidence | Read-only headless Chrome at 1440px and 390px emulation; no app exceptions or horizontal overflow; screenshots in [`docs/screenshots/`](docs/screenshots/) |
-| Production readiness | **No** |
+| Area                                  | Status                                                                                                                                                                                                                                    |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Network                               | Mezo testnet, chain ID `31611`                                                                                                                                                                                                            |
+| Main series                           | `0xC23167867baAF830D586598DE0634E26fD895b92`, active                                                                                                                                                                                      |
+| Series writer                         | `0x214e2316EAEeE24c1dc5d8433329fFC7544DA331` (`RosterTroveWriter`)                                                                                                                                                                        |
+| Position wrapper                      | `0x4726a021ec380a755EBE883BEb800A5d06723E41` (`RosterPositionWrapper`)                                                                                                                                                                    |
+| External pool                         | `0xED305fEF4c11f95dAe1d144e78B2B62be50965F2` (`vAMM-MUSD/wRBTC-PUT`)                                                                                                                                                                      |
+| Main expiry                           | `1795519026` — **2026-11-24 11:17:06 UTC**                                                                                                                                                                                                |
+| Strike                                | **80,000 MUSD per BTC** (`K_raw = 80000e18`)                                                                                                                                                                                              |
+| Premium                               | **0.001 MUSD per lot** (`1e15` raw)                                                                                                                                                                                                       |
+| Lot size                              | **0.000001 BTC** (`1e12` raw, 18-decimal ERC-20 BTC)                                                                                                                                                                                      |
+| Series collateral                     | **1,497.92 MUSD** after 26 lots exercised; 74 active lots                                                                                                                                                                                 |
+| Trove (snapshot 2026-10-26 10:15 UTC) | **0.043 native BTC**, debt **2,202.057203102504956752 MUSD**, ICR **156.856%**                                                                                                                                                            |
+| Secondary book                        | `0xc97B2fe5ba7e68ed7b52a657a137Cf636149cd25`; listing 1 open                                                                                                                                                                              |
+| Factory                               | `0xEeCCD2bb5c0605F3eaCDC4dA221D9bdeDa580D2F`                                                                                                                                                                                              |
+| Tests                                 | **102/102** default profile; **102/102** CI profile                                                                                                                                                                                       |
+| Short-dated demo series               | `0xCC6bEA372b4947D31303FAb5d13C2f984d68FA43`; expired 2026-10-25, 20 MUSD released, 10 tokens frozen                                                                                                                                      |
+| **Wave 2 deployment**                 | Fee-enabled contracts live on testnet — see [Wave 2 deployment](#wave-2-deployment) below                                                                                                                                                 |
+| Protocol fee                          | **50 bps** on buyer premiums; **30 bps** on order-book fills — live and collected on-chain                                                                                                                                                |
+| Recovery Mode guard                   | `openAndFund` and `borrowMore` blocked when system TCR < 150%; `isInRecoveryMode()` view live                                                                                                                                             |
+| External composability                | **Demonstrated**: wrapper/MUSD pool seeded with 15 actual lots; a third-party account swapped and exercised 1 lot                                                                                                                         |
+| Audit                                 | **None**                                                                                                                                                                                                                                  |
+| Organic demand                        | **None observed**; the buyer and external account are generated demo accounts                                                                                                                                                             |
+| Trove closure                         | **Not demonstrated** on-chain (MUSD shortfall); fully covered by 30 unit tests including `closeTrove`, `repay`, `claimCollateral`                                                                                                         |
+| Main expiry/finalize                  | **Not reached**                                                                                                                                                                                                                           |
+| Web application                       | **Implemented, production build passes, and hosted** at [roster-mezo.vercel.app](https://roster-mezo.vercel.app/); five-page read-only browser pass; wallet transaction flows (buy, exercise, list, fill) implemented and tested on-chain |
+| Browser evidence                      | Read-only headless Chrome at 1440px and 390px emulation; no app exceptions or horizontal overflow; screenshots in [`docs/screenshots/`](docs/screenshots/)                                                                                |
+| Production readiness                  | **No**                                                                                                                                                                                                                                    |
 
 The project deliberately records both what works and what does not. A testnet deployment
 is not a security review, a customer base, or a promise of liquidity.
@@ -131,34 +134,34 @@ Mezo](https://gamma.app/docs/Roster-Fixed-Series-BTC-Puts-on-Mezo-rzd9bk9woo3ois
 
 ### 3.1 Contracts
 
-| Role | Address | Notes |
-| --- | --- | --- |
-| `RosterSeriesFactory` | `0xEeCCD2bb5c0605F3eaCDC4dA221D9bdeDa580D2F` | Permissionless series registry |
-| `RosterOrderBook` | `0xc97B2fe5ba7e68ed7b52a657a137Cf636149cd25` | Escrowed secondary asks |
-| `RosterTroveWriter` | `0x214e2316EAEeE24c1dc5d8433329fFC7544DA331` | Trove-backed writer for the main series |
-| `RosterBtcPutSeries` (main) | `0xC23167867baAF830D586598DE0634E26fD895b92` | Active 30-day series |
-| `RosterBtcPutSeries` (demo) | `0xCC6bEA372b4947D31303FAb5d13C2f984d68FA43` | Expired short-dated demonstration; EOA writer; 20 MUSD released |
-| `RosterPositionWrapper` | `0x4726a021ec380a755EBE883BEb800A5d06723E41` | 18-decimal ERC-20 wrapper over main-series lots (`1e18 = 1 lot`) |
-| Mezo Pools Basic PoolFactory | `0x4947243CC818b627A5D06d14C4eCe7398A23Ce1A` | Third-party permissionless pool factory |
-| Mezo Pools Basic Router | `0x9a1ff7FE3a0F69959A3fBa1F1e5ee18e1A9CD7E9` | Third-party add/remove-liquidity and swap router |
-| Wrapper/MUSD pool | `0xED305fEF4c11f95dAe1d144e78B2B62be50965F2` | `vAMM-MUSD/wRBTC-PUT`; deployer-seeded, not a Roster contract |
-| Mezo MUSD/BTC pool (context) | `0xd16A5Df82120ED8D626a1a15232bFcE2366d6AA9` | Existing Mezo pool; not a trove-close solution |
-| MUSD | `0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503` | Mezo testnet MUSD, 18 decimals |
-| ERC-20 BTC | `0x7b7C000000000000000000000000000000000000` | Mezo-side BTC ERC-20 interface, 18 decimals |
-| Mezo PriceFeed | `0x86bCF0841622a5dAC14A313a15f96A95421b9366` | `fetchPrice()` returns MUSD/BTC with 18 decimals |
-| BorrowerOperations | `0xCdF7028ceAB81fA0C6971208e83fa7872994beE5` | Used by the trove vault |
-| TroveManager | `0xE47c80e8c23f6B4A1aE41c34837a0599D5D16bb0` | Used by the trove vault |
-| ActivePool | `0x143A063F62340DA3A8bEA1C5642d18C6D0F7FF51` | Native BTC collateral pool |
-| CollSurplusPool | `0xB4C35747c26E4aB5F1a7CdC7E875B5946eFa6fa9` | Collateral surplus recovery |
+| Role                         | Address                                      | Notes                                                            |
+| ---------------------------- | -------------------------------------------- | ---------------------------------------------------------------- |
+| `RosterSeriesFactory`        | `0xEeCCD2bb5c0605F3eaCDC4dA221D9bdeDa580D2F` | Permissionless series registry                                   |
+| `RosterOrderBook`            | `0xc97B2fe5ba7e68ed7b52a657a137Cf636149cd25` | Escrowed secondary asks                                          |
+| `RosterTroveWriter`          | `0x214e2316EAEeE24c1dc5d8433329fFC7544DA331` | Trove-backed writer for the main series                          |
+| `RosterBtcPutSeries` (main)  | `0xC23167867baAF830D586598DE0634E26fD895b92` | Active 30-day series                                             |
+| `RosterBtcPutSeries` (demo)  | `0xCC6bEA372b4947D31303FAb5d13C2f984d68FA43` | Expired short-dated demonstration; EOA writer; 20 MUSD released  |
+| `RosterPositionWrapper`      | `0x4726a021ec380a755EBE883BEb800A5d06723E41` | 18-decimal ERC-20 wrapper over main-series lots (`1e18 = 1 lot`) |
+| Mezo Pools Basic PoolFactory | `0x4947243CC818b627A5D06d14C4eCe7398A23Ce1A` | Third-party permissionless pool factory                          |
+| Mezo Pools Basic Router      | `0x9a1ff7FE3a0F69959A3fBa1F1e5ee18e1A9CD7E9` | Third-party add/remove-liquidity and swap router                 |
+| Wrapper/MUSD pool            | `0xED305fEF4c11f95dAe1d144e78B2B62be50965F2` | `vAMM-MUSD/wRBTC-PUT`; deployer-seeded, not a Roster contract    |
+| Mezo MUSD/BTC pool (context) | `0xd16A5Df82120ED8D626a1a15232bFcE2366d6AA9` | Existing Mezo pool; not a trove-close solution                   |
+| MUSD                         | `0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503` | Mezo testnet MUSD, 18 decimals                                   |
+| ERC-20 BTC                   | `0x7b7C000000000000000000000000000000000000` | Mezo-side BTC ERC-20 interface, 18 decimals                      |
+| Mezo PriceFeed               | `0x86bCF0841622a5dAC14A313a15f96A95421b9366` | `fetchPrice()` returns MUSD/BTC with 18 decimals                 |
+| BorrowerOperations           | `0xCdF7028ceAB81fA0C6971208e83fa7872994beE5` | Used by the trove vault                                          |
+| TroveManager                 | `0xE47c80e8c23f6B4A1aE41c34837a0599D5D16bb0` | Used by the trove vault                                          |
+| ActivePool                   | `0x143A063F62340DA3A8bEA1C5642d18C6D0F7FF51` | Native BTC collateral pool                                       |
+| CollSurplusPool              | `0xB4C35747c26E4aB5F1a7CdC7E875B5946eFa6fa9` | Collateral surplus recovery                                      |
 
 Explorer base: `https://explorer.test.mezo.org`
 
 ### 3.2 Accounts used in the demonstration
 
-| Role | Address |
-| --- | --- |
-| Deployer / vault owner | `0x90356CF97B3BF1749A604d3F89b3DF3602A459E3` |
-| Generated demo buyer | `0x1A1A70AF037123dda8A1B49BA245234f318Dd3b5` |
+| Role                          | Address                                      |
+| ----------------------------- | -------------------------------------------- |
+| Deployer / vault owner        | `0x90356CF97B3BF1749A604d3F89b3DF3602A459E3` |
+| Generated demo buyer          | `0x1A1A70AF037123dda8A1B49BA245234f318Dd3b5` |
 | Generated external pool buyer | `0x1Ed24CD690076B70381bEeb2Ce0D3d7F7625Ee3C` |
 
 The buyer and external-account keys were generated for the demo and are kept outside the
@@ -169,22 +172,60 @@ file is committed.
 
 ### 3.3 Deployment transactions
 
-| Step | Transaction |
-| --- | --- |
-| Deploy factory | `0x7820fd49212c721e3671a63f9a28e9c47b6056dbf15cd0dec9d0ec2beeab2c76` |
-| Deploy order book | `0xe99ced935a65633f7ecfeb6f789dd0cba5b278da59b81192d6d40783675f906f` |
-| Deploy trove vault | `0x6266c2c646f0d2cbabe48fba10afa528787f9f159814aea2567170176739b027` |
-| Create main series | `0xf93e75fbcf23a7805ad8d7bb7ff657d8b3fcdbb2133b4e47cea40cec5abe409b` |
-| Bind vault to series | `0x475ac4a22814c979e736d56644e74e51c26028c0a76edc24a7a6596461162929` |
-| Open trove and fund series | `0xf77a65faa269621d3b0c7c5f0f3bf2aba02da742c0f7448e9bfb89cef6d74cb3` |
-| Deploy position wrapper | `0xe6e4b8c60ac5c8cd2c6f03ed541c82a5af8af42e0f45e1c3b272a956b5b297e7` |
-| Create wrapper/MUSD pool | `0xa5ef82750d15bfb89e2db3cd99e2f65c4c044131fbfce8a1c00aba99f470c3d8` |
+| Step                                   | Transaction                                                                                                                                |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Deploy factory                         | `0x7820fd49212c721e3671a63f9a28e9c47b6056dbf15cd0dec9d0ec2beeab2c76`                                                                       |
+| Deploy order book                      | `0xe99ced935a65633f7ecfeb6f789dd0cba5b278da59b81192d6d40783675f906f`                                                                       |
+| Deploy trove vault                     | `0x6266c2c646f0d2cbabe48fba10afa528787f9f159814aea2567170176739b027`                                                                       |
+| Create main series                     | `0xf93e75fbcf23a7805ad8d7bb7ff657d8b3fcdbb2133b4e47cea40cec5abe409b`                                                                       |
+| Bind vault to series                   | `0x475ac4a22814c979e736d56644e74e51c26028c0a76edc24a7a6596461162929`                                                                       |
+| Open trove and fund series             | `0xf77a65faa269621d3b0c7c5f0f3bf2aba02da742c0f7448e9bfb89cef6d74cb3`                                                                       |
+| Deploy position wrapper                | `0xe6e4b8c60ac5c8cd2c6f03ed541c82a5af8af42e0f45e1c3b272a956b5b297e7`                                                                       |
+| Create wrapper/MUSD pool               | `0xa5ef82750d15bfb89e2db3cd99e2f65c4c044131fbfce8a1c00aba99f470c3d8`                                                                       |
 | Seed wrapper/MUSD pool (15 lots total) | `0xcd453d9521f628f10b3c508a903754fcf06c3f05e30800d06a9b8413d0d39e6d`, `0xc971c780d6bdb91f81988faf81f662eaeb075b0bdfa9e7277bfedbd39da26bcd` |
-| External account swap and exercise | `0xf996972556c8c11a49bf2a3857c38631dc69a313e584d97636bb424fa10e5cd1`, `0xf9376c6eafd76fbaeb96b1536814fad60c84e9f888b9aecae2af6c5e7fd4bab7` |
+| External account swap and exercise     | `0xf996972556c8c11a49bf2a3857c38631dc69a313e584d97636bb424fa10e5cd1`, `0xf9376c6eafd76fbaeb96b1536814fad60c84e9f888b9aecae2af6c5e7fd4bab7` |
 
 The full composability ledger, including approvals, funding, and gas, is in
 [`docs/COMPOSABILITY.md`](docs/COMPOSABILITY.md). The wrapper and pool are not part of
 the core series deployment and have no admin or upgrade path in Roster's code.
+
+### Wave 2 deployment
+
+The Wave 2 stack adds a protocol fee model (50 bps on premiums, 30 bps on fills), a
+Recovery Mode guard in the trove vault, and fee-aware ABIs in the app. All contracts
+are live on Mezo testnet.
+
+| Role                           | Address                                      | Notes                                                    |
+| ------------------------------ | -------------------------------------------- | -------------------------------------------------------- |
+| `RosterSeriesFactory` (Wave 2) | `0x1ee9eCc9E526c41c9D190dDD06FF286deb6727c9` | Fee-enabled factory (50 bps, fee recipient = deployer)   |
+| `RosterOrderBook` (Wave 2)     | `0xeecAb683D93a483669D797E4B7a06e8c286A25dC` | Fill fee enabled (30 bps), `sweepFees()`                 |
+| `RosterTroveWriter` (Wave 2)   | `0xc3Ff91EF99fcB8AE19CAc7698BB1eFAAd704C243` | Recovery Mode guard, `isInRecoveryMode()`, `systemTCR()` |
+| `RosterBtcPutSeries` (Wave 2)  | `0x68540003Ee52F73C3F2D8D6508227E8eCd5E767b` | 1750 MUSD collateral, 7 active lots, fee collected       |
+
+Wave 2 on-chain transactions (all status 1):
+
+| Step                             | Transaction                                                          |
+| -------------------------------- | -------------------------------------------------------------------- |
+| Deploy factory                   | `0x23b43f6cfb165a527b778990b125340b526f11fe09b0b2e6f951ed74a05d46a8` |
+| Deploy order book                | `0xe15f89b15ea5b001a97402493f5cbb9fc887a079c259eb36318df63f122d2aed` |
+| Deploy vault                     | `0xce220fd67519d17cf2641d1d489643a5aca9f636791370e12897b6a0072313d9` |
+| Create series                    | `0xe9517f8ea7a440f6e5feb33edc51b7975f1c8237c1266eaab6a36013e3184702` |
+| Bind series to vault             | `0xe80c23c103b191aa995260e07ac5904a74a279e67223582245916fab3ab1e9aa` |
+| Open trove + fund series         | `0xd20eb65ad784a361e64adc25819a441f80336b28e3c2def3323f4669b931c970` |
+| Buy 10 lots (with 0.5% fee)      | receipt status 1 on-chain                                            |
+| List 5 lots on order book        | receipt status 1 on-chain                                            |
+| Fill 5 lots (with 0.3% fill fee) | `0xc599a9e1594dcee9530ec92b81757db68a626d00c2a9fb39ffaa0fdd7f62bfdb` |
+| Exercise 3 lots                  | receipt status 1 on-chain                                            |
+| Sweep order book fees            | receipt status 1 on-chain                                            |
+
+Wave 2 on-chain state (verified via `cast call`):
+
+- Trove: active, 0.05 BTC collateral, ~2001.8 MUSD debt, ICR 183.1%
+- Series: 7 active lots (10 bought, 3 exercised), 1749.76 MUSD collateral
+- Protocol fee collected: 0.00005 MUSD forwarded to fee recipient at purchase
+- Order book fill fee: 0.00003 MUSD accrued and swept to fee recipient
+- Recovery Mode: `false`; system TCR: 263.3%
+- Repay: blocked by Mezo's 1800 MUSD minimum net debt floor (expected at minimum trove size)
 
 ---
 
@@ -192,24 +233,24 @@ the core series deployment and have no admin or upgrade path in Roster's code.
 
 The main series is `0xC23167867baAF830D586598DE0634E26fD895b92`.
 
-| Parameter | Value |
-| --- | --- |
-| Name / symbol | `Roster Mezo BTC Put (Trove)` / `rBTC-PUT-T` |
-| Writer | `RosterTroveWriter` at `0x214e…A331` |
-| MUSD | `0x1189…c503` |
-| ERC-20 BTC | `0x7b7C…0000` |
-| `K_raw` | `80000000000000000000000` (80,000 MUSD/BTC) |
-| `strike_per_lot_raw` | `80000000000000000` (0.08 MUSD per lot) |
-| `premium_per_lot_raw` | `1000000000000000` (0.001 MUSD per lot) |
-| `LOT_SIZE_RAW` | `1000000000000` (0.000001 BTC) |
-| Expiry | `1795519026` — 2026-11-24 11:17:06 UTC |
-| Initial writer deposit | 1,500 MUSD |
-| Current collateral | 1,497.92 MUSD |
-| Current active lots | 74 |
-| Current reserve | 5.92 MUSD |
-| Current excess | 1,492 MUSD |
-| Cumulative payouts | 2.08 MUSD |
-| Premium balance | 0 MUSD (withdrawn to the vault/owner) |
+| Parameter              | Value                                        |
+| ---------------------- | -------------------------------------------- |
+| Name / symbol          | `Roster Mezo BTC Put (Trove)` / `rBTC-PUT-T` |
+| Writer                 | `RosterTroveWriter` at `0x214e…A331`         |
+| MUSD                   | `0x1189…c503`                                |
+| ERC-20 BTC             | `0x7b7C…0000`                                |
+| `K_raw`                | `80000000000000000000000` (80,000 MUSD/BTC)  |
+| `strike_per_lot_raw`   | `80000000000000000` (0.08 MUSD per lot)      |
+| `premium_per_lot_raw`  | `1000000000000000` (0.001 MUSD per lot)      |
+| `LOT_SIZE_RAW`         | `1000000000000` (0.000001 BTC)               |
+| Expiry                 | `1795519026` — 2026-11-24 11:17:06 UTC       |
+| Initial writer deposit | 1,500 MUSD                                   |
+| Current collateral     | 1,497.92 MUSD                                |
+| Current active lots    | 74                                           |
+| Current reserve        | 5.92 MUSD                                    |
+| Current excess         | 1,492 MUSD                                   |
+| Cumulative payouts     | 2.08 MUSD                                    |
+| Premium balance        | 0 MUSD (withdrawn to the vault/owner)        |
 
 ### Capacity math
 
@@ -402,10 +443,10 @@ worthless. The pool's marginal price is not used by the series or the trove. See
 
 This distinction is about where BTC sits, not two independently issued BTC tokens:
 
-| Accounting path | Where it lives | What it does |
-| --- | --- | --- |
-| **Native BTC trove collateral** | Mezo trove, `msg.value` | Locked collateral for the MUSD borrow. It is not spendable exercise inventory. |
-| **ERC-20 BTC** | `0x7b7C000000000000000000000000000000000000` | Mezo's ERC-20 interface to liquid BTC, which a holder delivers on exercise. It is not a claim on the trove's locked collateral. |
+| Accounting path                 | Where it lives                               | What it does                                                                                                                    |
+| ------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **Native BTC trove collateral** | Mezo trove, `msg.value`                      | Locked collateral for the MUSD borrow. It is not spendable exercise inventory.                                                  |
+| **ERC-20 BTC**                  | `0x7b7C000000000000000000000000000000000000` | Mezo's ERC-20 interface to liquid BTC, which a holder delivers on exercise. It is not a claim on the trove's locked collateral. |
 
 Mezo exposes the liquid BTC balance through the ERC-20 interface at `0x7b7C…0000`.
 Roster treats that liquid balance as the exercise asset and treats the trove's locked
@@ -532,38 +573,38 @@ All transactions below succeeded on Mezo testnet. The explorer transaction path 
 
 ### 8.1 Main series
 
-| Step | Transaction / result |
-| --- | --- |
-| Deploy factory | `0x7820fd49212c721e3671a63f9a28e9c47b6056dbf15cd0dec9d0ec2beeab2c76` |
-| Deploy order book | `0xe99ced935a65633f7ecfeb6f789dd0cba5b278da59b81192d6d40783675f906f` |
-| Deploy trove vault | `0x6266c2c646f0d2cbabe48fba10afa528787f9f159814aea2567170176739b027` |
-| Create main series | `0xf93e75fbcf23a7805ad8d7bb7ff657d8b3fcdbb2133b4e47cea40cec5abe409b` |
-| Bind vault to series | `0x475ac4a22814c979e736d56644e74e51c26028c0a76edc24a7a6596461162929` |
-| Open trove and deposit 1,500 MUSD into series | `0xf77a65faa269621d3b0c7c5f0f3bf2aba02da742c0f7448e9bfb89cef6d74cb3` |
-| Withdraw 100 MUSD idle from vault | `0x42382fc32c88c42c7f16d8039f8bd7ea677d9575492ea1dc26d9b98fa3e122b1` |
-| Fund buyer with 50 MUSD | `0xfcdedbe4097ef8c5b874ec18535cca1fae9846b5c75419a3a84d0fbbf82c3e8c` |
-| Fund buyer with 0.001 native gas BTC | `0x430568bca841c1f3cb0514b888831dbadc614256672cc2d4ab16b8a56db6007a` |
-| Fund buyer with 0.001 ERC-20 BTC | `0x7955e79d23d2490e008a4ef92dcf95cdc4db63b8780bc987c3dd62f470f9e54a` |
-| Buyer approves MUSD to series | `0x21a70bfcc088cfbae46bba0e1856b28527f7a8e044fb8c78223562e27f229a63` |
-| Buyer purchases 100 lots (0.1 MUSD premium) | `0xe267876b92c517fd0f12f52b8f3935f683bdca6eda8b832c1837bc11e14c7186` |
-| Buyer approves position tokens to book | `0x49fd70c707bfc9590cb0afb4d4665b4677b3f2ee5b99b7bad1f1889f5d20a169` |
-| Buyer lists 50 lots at 0.002 MUSD/lot | `0x4c28017a4ca2f99c261b54ad30ecd4e21382b1e931eaae092fa76eda7ff3752e` |
-| Deployer fills 25 lots (0.05 MUSD) | `0xd02d308ffd79ae818b78d88563189ffd9a3f88b72a13b0f93a73a4e1e5a2894e` |
+| Step                                            | Transaction / result                                                 |
+| ----------------------------------------------- | -------------------------------------------------------------------- |
+| Deploy factory                                  | `0x7820fd49212c721e3671a63f9a28e9c47b6056dbf15cd0dec9d0ec2beeab2c76` |
+| Deploy order book                               | `0xe99ced935a65633f7ecfeb6f789dd0cba5b278da59b81192d6d40783675f906f` |
+| Deploy trove vault                              | `0x6266c2c646f0d2cbabe48fba10afa528787f9f159814aea2567170176739b027` |
+| Create main series                              | `0xf93e75fbcf23a7805ad8d7bb7ff657d8b3fcdbb2133b4e47cea40cec5abe409b` |
+| Bind vault to series                            | `0x475ac4a22814c979e736d56644e74e51c26028c0a76edc24a7a6596461162929` |
+| Open trove and deposit 1,500 MUSD into series   | `0xf77a65faa269621d3b0c7c5f0f3bf2aba02da742c0f7448e9bfb89cef6d74cb3` |
+| Withdraw 100 MUSD idle from vault               | `0x42382fc32c88c42c7f16d8039f8bd7ea677d9575492ea1dc26d9b98fa3e122b1` |
+| Fund buyer with 50 MUSD                         | `0xfcdedbe4097ef8c5b874ec18535cca1fae9846b5c75419a3a84d0fbbf82c3e8c` |
+| Fund buyer with 0.001 native gas BTC            | `0x430568bca841c1f3cb0514b888831dbadc614256672cc2d4ab16b8a56db6007a` |
+| Fund buyer with 0.001 ERC-20 BTC                | `0x7955e79d23d2490e008a4ef92dcf95cdc4db63b8780bc987c3dd62f470f9e54a` |
+| Buyer approves MUSD to series                   | `0x21a70bfcc088cfbae46bba0e1856b28527f7a8e044fb8c78223562e27f229a63` |
+| Buyer purchases 100 lots (0.1 MUSD premium)     | `0xe267876b92c517fd0f12f52b8f3935f683bdca6eda8b832c1837bc11e14c7186` |
+| Buyer approves position tokens to book          | `0x49fd70c707bfc9590cb0afb4d4665b4677b3f2ee5b99b7bad1f1889f5d20a169` |
+| Buyer lists 50 lots at 0.002 MUSD/lot           | `0x4c28017a4ca2f99c261b54ad30ecd4e21382b1e931eaae092fa76eda7ff3752e` |
+| Deployer fills 25 lots (0.05 MUSD)              | `0xd02d308ffd79ae818b78d88563189ffd9a3f88b72a13b0f93a73a4e1e5a2894e` |
 | Buyer exercises 25 lots (0.000025 BTC → 2 MUSD) | `0x4230a5c81c8e351634306885098e5ad3765b27564c3d6ff08462815ce36f4991` |
-| Vault withdraws 0.1 MUSD premium | `0x5f82341945dba350e179211cabb5031228844eebfb328acb9112bee715ce8a50` |
+| Vault withdraws 0.1 MUSD premium                | `0x5f82341945dba350e179211cabb5031228844eebfb328acb9112bee715ce8a50` |
 
 ### 8.2 Short-dated demo series
 
 The demo series exists to demonstrate the expiry path without waiting for the main
 series' 2026-11-24 maturity. It uses the deployer EOA as writer, not the trove vault.
 
-| Step | Transaction / result |
-| --- | --- |
-| Create demo series | `0xa7ff146b3ce49b46a8de4582c3826b320797b28d1e70fff7669530b4a10cabae` |
-| Approve 20 MUSD to demo series | `0x4280f849273e419d07533f3d205047f264422805b0f511e7289e883eb464f0c4` |
-| Deposit 20 MUSD | `0x89c016b7f19d87e89dba2ae8c3ecc4a5081b15a87d5ea681a5e328bea4275946` |
-| Buyer approves 0.01 MUSD | `0x5f52c73be0789064f6894bbbcea0d18df19113c77e665ba84141880a62487aa9` |
-| Buyer purchases 10 lots | `0xafa7a0e6227dd3d2d5eca8cd16e072a9443331a8d5f86cdc4480b568c6ba3815` |
+| Step                                   | Transaction / result                                                 |
+| -------------------------------------- | -------------------------------------------------------------------- |
+| Create demo series                     | `0xa7ff146b3ce49b46a8de4582c3826b320797b28d1e70fff7669530b4a10cabae` |
+| Approve 20 MUSD to demo series         | `0x4280f849273e419d07533f3d205047f264422805b0f511e7289e883eb464f0c4` |
+| Deposit 20 MUSD                        | `0x89c016b7f19d87e89dba2ae8c3ecc4a5081b15a87d5ea681a5e328bea4275946` |
+| Buyer approves 0.01 MUSD               | `0x5f52c73be0789064f6894bbbcea0d18df19113c77e665ba84141880a62487aa9` |
+| Buyer purchases 10 lots                | `0xafa7a0e6227dd3d2d5eca8cd16e072a9443331a8d5f86cdc4480b568c6ba3815` |
 | Anyone calls `expire()` after maturity | `0xdc1b099d2f1a6256de62fdb28698167728416a9fb9df895ac19062d81eb5dd8d` |
 
 After `expire()`:
@@ -581,15 +622,15 @@ The wrapper, pool, and external settlement path were added after the original li
 demonstration. All transactions below returned status `1`; the detailed ledger is in
 [`docs/COMPOSABILITY.md`](docs/COMPOSABILITY.md).
 
-| Step | Transaction |
-| --- | --- |
-| Deploy wrapper | `0xe6e4b8c60ac5c8cd2c6f03ed541c82a5af8af42e0f45e1c3b272a956b5b297e7` |
-| Approve and deposit first 10 lots | `0x4d2cf5c3eff0f19deb0d5f714f06a30dc4d9e32901502f8cd63019dde0608741`, `0x596fcecc54e2de075eb84efcb0a3f478d0e484344bde89878a8dc849e8087728` |
-| Create Mezo Pools pool | `0xa5ef82750d15bfb89e2db3cd99e2f65c4c044131fbfce8a1c00aba99f470c3d8` |
-| Add 5 lots + 0.01 MUSD | `0xcd453d9521f628f10b3c508a903754fcf06c3f05e30800d06a9b8413d0d39e6d` |
-| Deposit 10 more lots and add 10 + 0.02 MUSD | `0x9da7db90d7496b5c948840a2fbdf4a9d4f8c6c523733ae59301bf53f4b153bc3`, `0xc971c780d6bdb91f81988faf81f662eaeb075b0bdfa9e7277bfedbd39da26bcd` |
-| External account swaps 0.00215 MUSD for wrapper | `0xf996972556c8c11a49bf2a3857c38631dc69a313e584d97636bb424fa10e5cd1` |
-| External account exercises 1 lot | `0xf9376c6eafd76fbaeb96b1536814fad60c84e9f888b9aecae2af6c5e7fd4bab7` |
+| Step                                            | Transaction                                                                                                                                |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Deploy wrapper                                  | `0xe6e4b8c60ac5c8cd2c6f03ed541c82a5af8af42e0f45e1c3b272a956b5b297e7`                                                                       |
+| Approve and deposit first 10 lots               | `0x4d2cf5c3eff0f19deb0d5f714f06a30dc4d9e32901502f8cd63019dde0608741`, `0x596fcecc54e2de075eb84efcb0a3f478d0e484344bde89878a8dc849e8087728` |
+| Create Mezo Pools pool                          | `0xa5ef82750d15bfb89e2db3cd99e2f65c4c044131fbfce8a1c00aba99f470c3d8`                                                                       |
+| Add 5 lots + 0.01 MUSD                          | `0xcd453d9521f628f10b3c508a903754fcf06c3f05e30800d06a9b8413d0d39e6d`                                                                       |
+| Deposit 10 more lots and add 10 + 0.02 MUSD     | `0x9da7db90d7496b5c948840a2fbdf4a9d4f8c6c523733ae59301bf53f4b153bc3`, `0xc971c780d6bdb91f81988faf81f662eaeb075b0bdfa9e7277bfedbd39da26bcd` |
+| External account swaps 0.00215 MUSD for wrapper | `0xf996972556c8c11a49bf2a3857c38631dc69a313e584d97636bb424fa10e5cd1`                                                                       |
+| External account exercises 1 lot                | `0xf9376c6eafd76fbaeb96b1536814fad60c84e9f888b9aecae2af6c5e7fd4bab7`                                                                       |
 
 Outcome:
 
@@ -643,19 +684,19 @@ Snapshot taken on **2026-10-26** at approximately **10:15:56 UTC**, block
 
 ### 9.1 Main series
 
-| Field | Value |
-| --- | --- |
-| `active_lots` | `74` |
-| `totalSupply()` | `74` |
-| `collateral_balance_raw` | `1497.92e18` |
-| `reserved_raw` | `5.92e18` |
-| `excess_raw` | `1492e18` |
-| `total_deposited_raw` | `1500e18` |
-| `total_payouts_raw` | `2.08e18` |
-| `expiry_release_raw` | `0` |
-| `premium_balance_raw` | `0` |
-| `expired` | `false` |
-| Position holders | Buyer `25`; deployer `5` direct + `5` through the wrapper; pool `13.997264001463180664` through the wrapper; external `0.002735998536819336` through the wrapper; order book escrow `25` |
+| Field                    | Value                                                                                                                                                                                    |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `active_lots`            | `74`                                                                                                                                                                                     |
+| `totalSupply()`          | `74`                                                                                                                                                                                     |
+| `collateral_balance_raw` | `1497.92e18`                                                                                                                                                                             |
+| `reserved_raw`           | `5.92e18`                                                                                                                                                                                |
+| `excess_raw`             | `1492e18`                                                                                                                                                                                |
+| `total_deposited_raw`    | `1500e18`                                                                                                                                                                                |
+| `total_payouts_raw`      | `2.08e18`                                                                                                                                                                                |
+| `expiry_release_raw`     | `0`                                                                                                                                                                                      |
+| `premium_balance_raw`    | `0`                                                                                                                                                                                      |
+| `expired`                | `false`                                                                                                                                                                                  |
+| Position holders         | Buyer `25`; deployer `5` direct + `5` through the wrapper; pool `13.997264001463180664` through the wrapper; external `0.002735998536819336` through the wrapper; order book escrow `25` |
 
 The wrapper holds `19` series lots. Its internal holder split is deployer `5`, pool
 `13.997264001463180664`, and external dust `0.002735998536819336`; the total is exactly
@@ -663,96 +704,96 @@ The wrapper holds `19` series lots. Its internal holder split is deployer `5`, p
 
 ### 9.2 Demo series
 
-| Field | Value |
-| --- | --- |
-| `active_lots` | `0` |
-| `totalSupply()` | `10` (frozen) |
-| `collateral_balance_raw` | `0` |
-| `expiry_release_raw` | `20e18` |
-| `premium_balance_raw` | `0.01e18` |
-| `expired` | `true` |
-| `expiry` | `1792929664` — 2026-10-25 12:01:04 UTC |
-| Writer | Deployer EOA, not the vault |
+| Field                    | Value                                  |
+| ------------------------ | -------------------------------------- |
+| `active_lots`            | `0`                                    |
+| `totalSupply()`          | `10` (frozen)                          |
+| `collateral_balance_raw` | `0`                                    |
+| `expiry_release_raw`     | `20e18`                                |
+| `premium_balance_raw`    | `0.01e18`                              |
+| `expired`                | `true`                                 |
+| `expiry`                 | `1792929664` — 2026-10-25 12:01:04 UTC |
+| Writer                   | Deployer EOA, not the vault            |
 
 ### 9.3 Order book
 
-| Field | Value |
-| --- | --- |
-| `nextListingId` | `2` |
-| Listing `1` seller | Buyer `0x1A1A…Dd3b5` |
-| Listing `1` series | Main series |
-| Listing `1` price | `0.002 MUSD` per lot |
-| Listing `1` remaining | `25` lots |
-| Listing `1` active | `true` |
+| Field                 | Value                |
+| --------------------- | -------------------- |
+| `nextListingId`       | `2`                  |
+| Listing `1` seller    | Buyer `0x1A1A…Dd3b5` |
+| Listing `1` series    | Main series          |
+| Listing `1` price     | `0.002 MUSD` per lot |
+| Listing `1` remaining | `25` lots            |
+| Listing `1` active    | `true`               |
 
 The original 50-lot listing was partially filled: 25 lots were bought by the deployer and
 25 remain escrowed.
 
 ### 9.4 Vault
 
-| Field | Value |
-| --- | --- |
-| Vault MUSD balance | `400e18` |
-| `idleMUSD()` | `400e18` |
-| `reservedMUSD()` | `0` |
-| ERC-20 BTC held | `0.000026 BTC` (25 lots from the buyer plus 1 lot from the external exercise) |
-| `premiumForwarded()` | `0.1 MUSD` |
-| `expiryForwarded()` | `0` |
-| `totalDepositedToSeries()` | `1,500 MUSD` |
-| Vault owner | Deployer `0x9035…9E3` |
+| Field                      | Value                                                                         |
+| -------------------------- | ----------------------------------------------------------------------------- |
+| Vault MUSD balance         | `400e18`                                                                      |
+| `idleMUSD()`               | `400e18`                                                                      |
+| `reservedMUSD()`           | `0`                                                                           |
+| ERC-20 BTC held            | `0.000026 BTC` (25 lots from the buyer plus 1 lot from the external exercise) |
+| `premiumForwarded()`       | `0.1 MUSD`                                                                    |
+| `expiryForwarded()`        | `0`                                                                           |
+| `totalDepositedToSeries()` | `1,500 MUSD`                                                                  |
+| Vault owner                | Deployer `0x9035…9E3`                                                         |
 
 ### 9.5 Position wrapper
 
-| Field | Value |
-| --- | --- |
-| Wrapper address | `0x4726a021ec380a755EBE883BEb800A5d06723E41` |
-| Wrapped series | Main series `0xC231…5b92` |
-| `UNIT` | `1e18` wrapper units per lot |
-| `totalSupply()` | `19e18` |
-| `underlyingLots()` | `19` |
-| Series tokens held | `19` |
-| `isLive()` | `true` |
-| Deployer balance | `5e18` |
-| Pool balance | `13.997264001463180664e18` |
-| External balance | `0.002735998536819336e18` (fractional dust) |
+| Field              | Value                                        |
+| ------------------ | -------------------------------------------- |
+| Wrapper address    | `0x4726a021ec380a755EBE883BEb800A5d06723E41` |
+| Wrapped series     | Main series `0xC231…5b92`                    |
+| `UNIT`             | `1e18` wrapper units per lot                 |
+| `totalSupply()`    | `19e18`                                      |
+| `underlyingLots()` | `19`                                         |
+| Series tokens held | `19`                                         |
+| `isLive()`         | `true`                                       |
+| Deployer balance   | `5e18`                                       |
+| Pool balance       | `13.997264001463180664e18`                   |
+| External balance   | `0.002735998536819336e18` (fractional dust)  |
 
 ### 9.6 Wrapper/MUSD pool
 
-| Field | Value |
-| --- | --- |
-| Pool address | `0xED305fEF4c11f95dAe1d144e78B2B62be50965F2` |
-| Pool type | Mezo Pools volatile AMM, `vAMM-MUSD/wRBTC-PUT` |
-| Token 0 | MUSD |
-| Token 1 | Wrapper |
-| MUSD reserve | `0.03214914e18` |
-| Wrapper reserve | `13.997264001463180664e18` |
-| Implied marginal price | `0.002296816006088 MUSD` per lot |
-| LP total supply | `670.820393249936907` |
-| Deployer LP balance | `670.820393249935907` (1000 wei locked) |
-| External LP balance | `0` |
+| Field                  | Value                                          |
+| ---------------------- | ---------------------------------------------- |
+| Pool address           | `0xED305fEF4c11f95dAe1d144e78B2B62be50965F2`   |
+| Pool type              | Mezo Pools volatile AMM, `vAMM-MUSD/wRBTC-PUT` |
+| Token 0                | MUSD                                           |
+| Token 1                | Wrapper                                        |
+| MUSD reserve           | `0.03214914e18`                                |
+| Wrapper reserve        | `13.997264001463180664e18`                     |
+| Implied marginal price | `0.002296816006088 MUSD` per lot               |
+| LP total supply        | `670.820393249936907`                          |
+| Deployer LP balance    | `670.820393249935907` (1000 wei locked)        |
+| External LP balance    | `0`                                            |
 
 The pool is deployer-seeded and thin. The deployer holds essentially all LP supply and can
 remove it. The marginal price moved by roughly 15% on the external `0.00215 MUSD` swap.
 
 ### 9.7 Trove
 
-| Field | Value |
-| --- | --- |
-| Native BTC collateral | `0.043 BTC` |
-| Trove debt | `2,202.057203102504956752 MUSD` |
-| Current ICR | `1.568564521549903788` — **156.856%** |
-| Mezo BTC price | `80,327.18147 MUSD/BTC` |
-| Trove status | `1` (active) |
-| Application minimum ICR | `1.5e18` — **150%** |
-| Mezo liquidation MCR | **110%** |
-| MUSD gas compensation | `200 MUSD` |
+| Field                   | Value                                 |
+| ----------------------- | ------------------------------------- |
+| Native BTC collateral   | `0.043 BTC`                           |
+| Trove debt              | `2,202.057203102504956752 MUSD`       |
+| Current ICR             | `1.568564521549903788` — **156.856%** |
+| Mezo BTC price          | `80,327.18147 MUSD/BTC`               |
+| Trove status            | `1` (active)                          |
+| Application minimum ICR | `1.5e18` — **150%**                   |
+| Mezo liquidation MCR    | **110%**                              |
+| MUSD gas compensation   | `200 MUSD`                            |
 
 ### 9.8 Account balances
 
-| Account | MUSD | ERC-20 BTC |
-| --- | --- | --- |
-| Deployer / vault owner | `50.01 MUSD` | `0.004697993136676592 BTC` |
-| Buyer | `51.94 MUSD` | `0.0019749992572 BTC` |
+| Account                    | MUSD           | ERC-20 BTC                 |
+| -------------------------- | -------------- | -------------------------- |
+| Deployer / vault owner     | `50.01 MUSD`   | `0.004697993136676592 BTC` |
+| Buyer                      | `51.94 MUSD`   | `0.0019749992572 BTC`      |
 | Generated external account | `0.08785 MUSD` | `0.000300999867586176 BTC` |
 
 The deployer MUSD balance includes the 20 MUSD demo expiry release. The external account
@@ -871,13 +912,13 @@ requirement. It does use Mezo credit infrastructure, Mezo assets, and a Mezo Poo
 
 ### 12.1 Toolchain
 
-| Tool | Version / setting |
-| --- | --- |
-| Foundry | `1.7.1` |
-| Solidity | `0.8.24` |
-| EVM version | `london` |
-| Optimizer | enabled, 200 runs |
-| `via_ir` | `true` |
+| Tool            | Version / setting                         |
+| --------------- | ----------------------------------------- |
+| Foundry         | `1.7.1`                                   |
+| Solidity        | `0.8.24`                                  |
+| EVM version     | `london`                                  |
+| Optimizer       | enabled, 200 runs                         |
+| `via_ir`        | `true`                                    |
 | Test dependency | no `forge-std`; local `Vm` interface only |
 
 ### 12.2 Commands and results
@@ -898,15 +939,15 @@ documented strike arithmetic. It is a consistency check, not a compiler or EVM t
 
 Test breakdown:
 
-| Suite | Tests |
-| --- | --- |
-| `RosterSeriesFactoryTest` | 4 |
-| `RosterTroveWriterTest` | 23 |
-| `RosterBtcPutSeriesTest` | 36 |
-| `RosterOrderBookTest` | 13 |
-| `RosterPositionWrapperTest` | 9 |
-| `SeriesInvariantTest` | 6 invariants |
-| **Total** | **91** |
+| Suite                       | Tests        |
+| --------------------------- | ------------ |
+| `RosterSeriesFactoryTest`   | 4            |
+| `RosterTroveWriterTest`     | 23           |
+| `RosterBtcPutSeriesTest`    | 36           |
+| `RosterOrderBookTest`       | 13           |
+| `RosterPositionWrapperTest` | 9            |
+| `SeriesInvariantTest`       | 6 invariants |
+| **Total**                   | **91**       |
 
 The CI profile uses 5,000 fuzz runs and 512 invariant runs at depth 100. The invariant
 handler covers deposit, purchase, exercise, transfer, approval, `transferFrom`, premium
@@ -970,13 +1011,13 @@ app/
 
 ### 13.1 Pages
 
-| Page | Entry | What it contains |
-| --- | --- | --- |
-| Landing | `index.html` | Editorial explanation of the mechanism, live series ticket, stat strip, live terms, native-BTC vs ERC-20 BTC separation, trove risk, secondary-market explainer, lifecycle, page directory, verification guidance, and disclosures. It links to the functional pages rather than duplicating their controls. |
-| Trade | `trade.html` | Series selector, live ticket, primary purchase quote and button, any-address position viewer, exercise quote and button, series facts, and payoff explanation. |
-| Secondary | `secondary.html` | Live ask summary, series selector, list form, open-ask table with fill-all/cancel, compact position readout, and settlement rules. |
-| Vault | `vault.html` | Trove health and ICR, debt and collateral, vault balance buckets, owner console for premium/idle MUSD/ERC-20 BTC/finalize/close status, accounting rules, and limits. |
-| Activity | `activity.html` | Event summary, category filters, decoded on-chain log with explorer links, eight-card contract directory, and verification instructions. |
+| Page      | Entry            | What it contains                                                                                                                                                                                                                                                                                             |
+| --------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Landing   | `index.html`     | Editorial explanation of the mechanism, live series ticket, stat strip, live terms, native-BTC vs ERC-20 BTC separation, trove risk, secondary-market explainer, lifecycle, page directory, verification guidance, and disclosures. It links to the functional pages rather than duplicating their controls. |
+| Trade     | `trade.html`     | Series selector, live ticket, primary purchase quote and button, any-address position viewer, exercise quote and button, series facts, and payoff explanation.                                                                                                                                               |
+| Secondary | `secondary.html` | Live ask summary, series selector, list form, open-ask table with fill-all/cancel, compact position readout, and settlement rules.                                                                                                                                                                           |
+| Vault     | `vault.html`     | Trove health and ICR, debt and collateral, vault balance buckets, owner console for premium/idle MUSD/ERC-20 BTC/finalize/close status, accounting rules, and limits.                                                                                                                                        |
+| Activity  | `activity.html`  | Event summary, category filters, decoded on-chain log with explorer links, eight-card contract directory, and verification instructions.                                                                                                                                                                     |
 
 The shared shell provides the Roster brand, Trade/Secondary/Vault/Activity navigation,
 the Mezo Testnet pill, wallet connect button, toast stack, and footer. The active page is
@@ -1016,16 +1057,16 @@ transaction was signed or broadcast through the UI. **The pass predates the wrap
 Mezo Pools work.** The observed values in this subsection are historical; the current
 state is in §9.
 
-| Check | Result |
-| --- | --- |
-| Five pages load | Pass: landing, trade, secondary, vault, activity |
-| Uncaught app exceptions | None observed |
-| Desktop layout | 1440px wide; `document.scrollWidth == clientWidth` on all five pages |
-| Mobile layout | 390px emulation; navigation visible; `document.scrollWidth == clientWidth` on all five pages |
-| Live reads | BTC spot, series collateral, premium paid, trove debt/ICR, vault buckets, ask book, activity log, and contract cards all rendered |
-| Trade quote | 100 lots produced `0.1 MUSD` premium, `8 MUSD` strike payout, `0.0001 BTC` delivered, with an enabled buy button |
-| Vault close status | Displayed required repayment and an approximate `1,551.99 MUSD` shortfall, counting the vault owner's MUSD |
-| Activity log | 13 decoded events at the check block; the page also exposed all eight contract cards |
+| Check                   | Result                                                                                                                            |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Five pages load         | Pass: landing, trade, secondary, vault, activity                                                                                  |
+| Uncaught app exceptions | None observed                                                                                                                     |
+| Desktop layout          | 1440px wide; `document.scrollWidth == clientWidth` on all five pages                                                              |
+| Mobile layout           | 390px emulation; navigation visible; `document.scrollWidth == clientWidth` on all five pages                                      |
+| Live reads              | BTC spot, series collateral, premium paid, trove debt/ICR, vault buckets, ask book, activity log, and contract cards all rendered |
+| Trade quote             | 100 lots produced `0.1 MUSD` premium, `8 MUSD` strike payout, `0.0001 BTC` delivered, with an enabled buy button                  |
+| Vault close status      | Displayed required repayment and an approximate `1,551.99 MUSD` shortfall, counting the vault owner's MUSD                        |
+| Activity log            | 13 decoded events at the check block; the page also exposed all eight contract cards                                              |
 
 The live values move with interest and trading. At the browser check the observed state
 included approximately `$80,085` spot, `1,498 MUSD` series collateral, `75` active lots,
@@ -1162,25 +1203,25 @@ Plain `source .env` does not export shell variables to child processes; Foundry'
 
 ### 15.1 Variables
 
-| Variable | Purpose | Notes |
-| --- | --- | --- |
-| `MEZO_TESTNET_RPC_URL` | Mezo testnet RPC | `https://rpc.test.mezo.org` |
-| `MEZO_TESTNET_CHAIN_ID` | Expected chain | `31611` |
-| `PRIVATE_KEY` | Broadcast key | Local only; never commit |
-| `WRITER_ADDRESS` | EOA writer for `DeploySeries.s.sol` | Must equal the key's address; ignored by `DeployStack.s.sol` |
-| `MUSD_ADDRESS` | Mezo MUSD | Verified 18 decimals |
-| `BTC_ADDRESS` | Mezo ERC-20 BTC | Verified 18 decimals |
-| `BORROWER_OPERATIONS_ADDRESS` | Mezo BorrowerOperations | Used by vault |
-| `TROVE_MANAGER_ADDRESS` | Mezo TroveManager | Used by vault |
-| `MEZO_PRICE_FEED_ADDRESS` | Mezo PriceFeed | Used by vault |
-| `STRIKE_RAW` | MUSD per BTC, 18 decimals | Must be divisible by `1e6` |
-| `PREMIUM_PER_LOT_RAW` | MUSD premium per lot | Must be nonzero |
-| `EXPIRY` | Absolute Unix timestamp | Must be in the future |
-| `SERIES_NAME` / `SERIES_SYMBOL` | Series metadata | Quote names containing spaces/parentheses |
-| `TROVE_COLLATERAL_RAW` | Native BTC posted to Mezo | **Not** ERC-20 BTC |
-| `TROVE_DEBT_RAW` | Requested MUSD borrow | Final debt adds fee + gas compensation |
-| `SERIES_DEPOSIT_RAW` | MUSD deposited into series | Must be ≤ requested borrow |
-| `MIN_ICR_RAW` | Application minimum ICR | Bounded by `1.2e18` to `5e18` |
+| Variable                        | Purpose                             | Notes                                                        |
+| ------------------------------- | ----------------------------------- | ------------------------------------------------------------ |
+| `MEZO_TESTNET_RPC_URL`          | Mezo testnet RPC                    | `https://rpc.test.mezo.org`                                  |
+| `MEZO_TESTNET_CHAIN_ID`         | Expected chain                      | `31611`                                                      |
+| `PRIVATE_KEY`                   | Broadcast key                       | Local only; never commit                                     |
+| `WRITER_ADDRESS`                | EOA writer for `DeploySeries.s.sol` | Must equal the key's address; ignored by `DeployStack.s.sol` |
+| `MUSD_ADDRESS`                  | Mezo MUSD                           | Verified 18 decimals                                         |
+| `BTC_ADDRESS`                   | Mezo ERC-20 BTC                     | Verified 18 decimals                                         |
+| `BORROWER_OPERATIONS_ADDRESS`   | Mezo BorrowerOperations             | Used by vault                                                |
+| `TROVE_MANAGER_ADDRESS`         | Mezo TroveManager                   | Used by vault                                                |
+| `MEZO_PRICE_FEED_ADDRESS`       | Mezo PriceFeed                      | Used by vault                                                |
+| `STRIKE_RAW`                    | MUSD per BTC, 18 decimals           | Must be divisible by `1e6`                                   |
+| `PREMIUM_PER_LOT_RAW`           | MUSD premium per lot                | Must be nonzero                                              |
+| `EXPIRY`                        | Absolute Unix timestamp             | Must be in the future                                        |
+| `SERIES_NAME` / `SERIES_SYMBOL` | Series metadata                     | Quote names containing spaces/parentheses                    |
+| `TROVE_COLLATERAL_RAW`          | Native BTC posted to Mezo           | **Not** ERC-20 BTC                                           |
+| `TROVE_DEBT_RAW`                | Requested MUSD borrow               | Final debt adds fee + gas compensation                       |
+| `SERIES_DEPOSIT_RAW`            | MUSD deposited into series          | Must be ≤ requested borrow                                   |
+| `MIN_ICR_RAW`                   | Application minimum ICR             | Bounded by `1.2e18` to `5e18`                                |
 
 ### 15.2 Important configuration caveats
 
@@ -1495,22 +1536,22 @@ Medium-term:
 
 ## 21. Documentation index
 
-| Document | Purpose | Status |
-| --- | --- | --- |
-| [`README.md`](README.md) | Primary project, deployment, and evidence record | This file; current |
-| [`docs/SUBMISSION.md`](docs/SUBMISSION.md) | Wave 1 submission narrative | Current; matches the live deployment |
-| [`docs/WAVE_2.md`](docs/WAVE_2.md) | Wave 2 resubmission: changes since Wave 1 and planned scope | Proposal; Wave 2 work is not yet delivered |
-| [`docs/COMPOSABILITY.md`](docs/COMPOSABILITY.md) | Wrapper, Mezo Pools pool, and external-account evidence | Current; live testnet record |
-| [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md) | Test scenarios and invariants | Current; 91/91 pass |
-| [`docs/TEST_OUTPUT.txt`](docs/TEST_OUTPUT.txt) | Recorded test/build/live/browser evidence | Current; includes wrapper tests and external composability evidence |
-| [`docs/VALIDATION_STATUS.md`](docs/VALIDATION_STATUS.md) | Validation and live-state summary | Current; includes wrapper/pool evidence and remaining wallet gap |
-| [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md) | Threat model and assumptions | Current for the deployed design, including wrapper/pool risks |
-| [`docs/DEPLOYMENT_RECORD.md`](docs/DEPLOYMENT_RECORD.md) | Addresses, hashes, terms, snapshots | Current; live record |
-| [`docs/deployment.json`](docs/deployment.json) | Machine-readable deployment state | Current snapshot plus app and composability evidence |
-| [`docs/WEB_APP.md`](docs/WEB_APP.md) | Full multi-page web-app inventory | Current; read-only browser pass recorded; wrapper/pool not surfaced |
-| [`docs/screenshots/`](docs/screenshots/) | Desktop and mobile browser screenshots | Read-only evidence; no wallet transaction |
-| [`.env.example`](.env.example) | Configuration template | Replace key, writer, and expiry; never commit `.env` |
-| [`app/`](app/) | Five-page Vite + ethers application | Implemented; build passes; read-only browser pass; wallet transaction not performed |
+| Document                                                 | Purpose                                                                     | Status                                                                              |
+| -------------------------------------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| [`README.md`](README.md)                                 | Primary project, deployment, and evidence record                            | This file; current                                                                  |
+| [`docs/SUBMISSION.md`](docs/SUBMISSION.md)               | Wave 1 submission narrative                                                 | Current; matches the live deployment                                                |
+| [`docs/WAVE_2.md`](docs/WAVE_2.md)                       | Wave 2 resubmission: fee model, Recovery Mode, lifecycle, deployment record | Current; Wave 2 contracts deployed and tested (102/102)                             |
+| [`docs/COMPOSABILITY.md`](docs/COMPOSABILITY.md)         | Wrapper, Mezo Pools pool, and external-account evidence                     | Current; live testnet record                                                        |
+| [`docs/TEST_PLAN.md`](docs/TEST_PLAN.md)                 | Test scenarios and invariants                                               | Current; 102/102 pass                                                               |
+| [`docs/TEST_OUTPUT.txt`](docs/TEST_OUTPUT.txt)           | Recorded test/build/live/browser evidence                                   | Current; includes Wave 2 fee and Recovery Mode tests                                |
+| [`docs/VALIDATION_STATUS.md`](docs/VALIDATION_STATUS.md) | Validation and live-state summary                                           | Current; includes Wave 2 fee model and Recovery Mode guard                          |
+| [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md)           | Threat model and assumptions                                                | Current for the deployed design, including wrapper/pool risks                       |
+| [`docs/DEPLOYMENT_RECORD.md`](docs/DEPLOYMENT_RECORD.md) | Addresses, hashes, terms, snapshots                                         | Current; live record                                                                |
+| [`docs/deployment.json`](docs/deployment.json)           | Machine-readable deployment state                                           | Current snapshot plus app and composability evidence                                |
+| [`docs/WEB_APP.md`](docs/WEB_APP.md)                     | Full multi-page web-app inventory                                           | Current; read-only browser pass recorded; wrapper/pool not surfaced                 |
+| [`docs/screenshots/`](docs/screenshots/)                 | Desktop and mobile browser screenshots                                      | Read-only evidence; no wallet transaction                                           |
+| [`.env.example`](.env.example)                           | Configuration template                                                      | Replace key, writer, and expiry; never commit `.env`                                |
+| [`app/`](app/)                                           | Five-page Vite + ethers application                                         | Implemented; build passes; read-only browser pass; wallet transaction not performed |
 
 ---
 

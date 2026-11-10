@@ -564,7 +564,10 @@
     "exerciseMusdOutRaw": "80000000000000000",
     "erc20BtcPaidRaw": "1000000000000",
     "seriesActiveLotsBeforeAfter": [75, 74],
-    "wrapperSupplyBeforeAfterRaw": ["20000000000000000000", "19000000000000000000"],
+    "wrapperSupplyBeforeAfterRaw": [
+      "20000000000000000000",
+      "19000000000000000000"
+    ],
     "limitations": [
       "pool is deployer-seeded, thin, and not organic liquidity",
       "the AMM cannot call wrapper.exercise(); pool-held lots must be sold before expiry",
@@ -636,5 +639,78 @@
     "hosted": true,
     "wrapperPoolSupport": false,
     "note": "The read-only browser pass predates the wrapper/pool and shows historical 75-lot state."
+  },
+  "wave2": {
+    "description": "Wave 2 fee-enabled deployment with Recovery Mode guard",
+    "snapshotBlock": 16698627,
+    "status": {
+      "deployed": true,
+      "feeModelLive": true,
+      "recoveryModeGuardLive": true,
+      "premiumFeeCollected": true,
+      "fillFeeCollectedAndSwept": true,
+      "buyExecuted": true,
+      "listExecuted": true,
+      "fillExecuted": true,
+      "exerciseExecuted": true,
+      "repayBlockedByMinNetDebt": true,
+      "closeCoveredByUnitTests": true,
+      "contractsVerifiedOnExplorer": false,
+      "independentUsers": false,
+      "videoRecut": false
+    },
+    "feeConfig": {
+      "premiumFeeBps": 50,
+      "fillFeeBps": 30,
+      "feeRecipient": "0x90356CF97B3BF1749A604d3F89b3DF3602A459E3"
+    },
+    "contracts": {
+      "factory": {
+        "name": "RosterSeriesFactory",
+        "address": "0x1ee9eCc9E526c41c9D190dDD06FF286deb6727c9",
+        "deployTx": "0x23b43f6cfb165a527b778990b125340b526f11fe09b0b2e6f951ed74a05d46a8"
+      },
+      "orderBook": {
+        "name": "RosterOrderBook",
+        "address": "0xeecAb683D93a483669D797E4B7a06e8c286A25dC",
+        "deployTx": "0xe15f89b15ea5b001a97402493f5cbb9fc887a079c259eb36318df63f122d2aed"
+      },
+      "vault": {
+        "name": "RosterTroveWriter",
+        "address": "0xc3Ff91EF99fcB8AE19CAc7698BB1eFAAd704C243",
+        "deployTx": "0xce220fd67519d17cf2641d1d489643a5aca9f636791370e12897b6a0072313d9"
+      },
+      "series": {
+        "name": "RosterBtcPutSeries",
+        "address": "0x68540003Ee52F73C3F2D8D6508227E8eCd5E767b",
+        "createTx": "0xe9517f8ea7a440f6e5feb33edc51b7975f1c8237c1266eaab6a36013e3184702"
+      }
+    },
+    "lifecycleTransactions": {
+      "bindSeries": "0xe80c23c103b191aa995260e07ac5904a74a279e67223582245916fab3ab1e9aa",
+      "openTroveAndFund": "0xd20eb65ad784a361e64adc25819a441f80336b28e3c2def3323f4669b931c970",
+      "buy10Lots": "status 1 on-chain",
+      "list5Lots": "status 1 on-chain",
+      "fill5Lots": "0xc599a9e1594dcee9530ec92b81757db68a626d00c2a9fb39ffaa0fdd7f62bfdb",
+      "exercise3Lots": "status 1 on-chain",
+      "sweepFees": "status 1 on-chain"
+    },
+    "onChainState": {
+      "troveStatus": 1,
+      "troveCollateral": "50000000000000000",
+      "troveDebt": "2001800419913376702203",
+      "troveICR": "1831470132167729144",
+      "seriesActiveLots": 7,
+      "seriesCollateral": "1749760000000000000000",
+      "totalFeesCollected": "50000000000000",
+      "isInRecoveryMode": false,
+      "systemTCR": "2633514316492636274"
+    },
+    "tests": {
+      "total": 102,
+      "passed": 102,
+      "failed": 0,
+      "newWave2Tests": 16
+    }
   }
 }

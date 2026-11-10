@@ -17,12 +17,23 @@ contract RosterSeriesFactoryTest is TestBase {
 
     function setUp() public override {
         super.setUp();
-        factory = new RosterSeriesFactory(address(musd), address(btc));
+        factory = new RosterSeriesFactory(
+            address(musd),
+            address(btc),
+            feeRecipient,
+            FEE_BPS
+        );
     }
 
     function test_factory_creates_registers_and_exposes_terms() public {
-        RosterBtcPutSeries created =
-            factory.createSeries(writer, K_RAW, PREMIUM_PER_LOT, expiryTime, "Factory Put", "FPUT");
+        RosterBtcPutSeries created = factory.createSeries(
+            writer,
+            K_RAW,
+            PREMIUM_PER_LOT,
+            expiryTime,
+            "Factory Put",
+            "FPUT"
+        );
 
         _assertEq(factory.seriesCount(), 1, "series count");
         _assertEq(factory.seriesAt(0), address(created), "series at zero");
@@ -38,9 +49,22 @@ contract RosterSeriesFactoryTest is TestBase {
     }
 
     function test_factory_allows_multiple_writers_and_series() public {
-        RosterBtcPutSeries first = factory.createSeries(writer, K_RAW, PREMIUM_PER_LOT, expiryTime, "Writer A", "WA");
-        RosterBtcPutSeries second =
-            factory.createSeries(alice, 70_000 * 1e18, 2e15, expiryTime + 30 days, "Writer B", "WB");
+        RosterBtcPutSeries first = factory.createSeries(
+            writer,
+            K_RAW,
+            PREMIUM_PER_LOT,
+            expiryTime,
+            "Writer A",
+            "WA"
+        );
+        RosterBtcPutSeries second = factory.createSeries(
+            alice,
+            70_000 * 1e18,
+            2e15,
+            expiryTime + 30 days,
+            "Writer B",
+            "WB"
+        );
 
         _assertEq(factory.seriesCount(), 2, "two series");
         _assertEq(factory.seriesAt(0), address(first), "first series");
@@ -52,18 +76,37 @@ contract RosterSeriesFactoryTest is TestBase {
 
     function test_factory_rejects_invalid_constructor_parameters() public {
         vm.expectRevert(RosterSeriesFactory.ZeroAddress.selector);
-        factory.createSeries(address(0), K_RAW, PREMIUM_PER_LOT, expiryTime, "X", "X");
+        factory.createSeries(
+            address(0),
+            K_RAW,
+            PREMIUM_PER_LOT,
+            expiryTime,
+            "X",
+            "X"
+        );
 
         vm.expectRevert(RosterBtcPutSeries.InvalidPremium.selector);
         factory.createSeries(writer, K_RAW, 0, expiryTime, "X", "X");
 
         vm.expectRevert(RosterBtcPutSeries.InvalidExpiry.selector);
-        factory.createSeries(writer, K_RAW, PREMIUM_PER_LOT, block.timestamp, "X", "X");
+        factory.createSeries(
+            writer,
+            K_RAW,
+            PREMIUM_PER_LOT,
+            block.timestamp,
+            "X",
+            "X"
+        );
     }
 
     function test_factory_rejects_bad_asset_pair() public {
         vm.expectRevert(RosterSeriesFactory.IdenticalTokenAddresses.selector);
-        new RosterSeriesFactory(address(musd), address(musd));
+        new RosterSeriesFactory(
+            address(musd),
+            address(musd),
+            feeRecipient,
+            FEE_BPS
+        );
     }
 }
 
@@ -80,9 +123,26 @@ contract RosterOrderBookTest is TestBase {
 
         // The book only accepts factory-created series, so replace the direct fixture
         // series with one produced by the registry and re-approve the new series.
-        factory = new RosterSeriesFactory(address(musd), address(btc));
-        series = factory.createSeries(writer, K_RAW, PREMIUM_PER_LOT, expiryTime, "Book Put", "BPUT");
-        book = new RosterOrderBook(address(musd), address(factory));
+        factory = new RosterSeriesFactory(
+            address(musd),
+            address(btc),
+            feeRecipient,
+            FEE_BPS
+        );
+        series = factory.createSeries(
+            writer,
+            K_RAW,
+            PREMIUM_PER_LOT,
+            expiryTime,
+            "Book Put",
+            "BPUT"
+        );
+        book = new RosterOrderBook(
+            address(musd),
+            address(factory),
+            feeRecipient,
+            0
+        );
 
         vm.prank(writer);
         musd.approve(address(series), type(uint256).max);
@@ -106,7 +166,16 @@ contract RosterOrderBookTest is TestBase {
 
     function test_order_book_rejects_unregistered_series() public {
         RosterBtcPutSeries unregistered = new RosterBtcPutSeries(
-            writer, address(musd), address(btc), K_RAW, PREMIUM_PER_LOT, expiryTime, "Unregistered", "UNREG"
+            writer,
+            address(musd),
+            address(btc),
+            K_RAW,
+            PREMIUM_PER_LOT,
+            expiryTime,
+            "Unregistered",
+            "UNREG",
+            feeRecipient,
+            FEE_BPS
         );
 
         vm.prank(alice);
@@ -116,21 +185,44 @@ contract RosterOrderBookTest is TestBase {
 
     function test_order_book_rejects_mismatched_musd_series() public {
         MockERC20 otherMusd = new MockERC20("Other USD", "OUSD", 18);
-        RosterSeriesFactory otherFactory = new RosterSeriesFactory(address(otherMusd), address(btc));
-        RosterBtcPutSeries otherSeries =
-            otherFactory.createSeries(writer, K_RAW, PREMIUM_PER_LOT, expiryTime, "Other Put", "OPUT");
+        RosterSeriesFactory otherFactory = new RosterSeriesFactory(
+            address(otherMusd),
+            address(btc),
+            feeRecipient,
+            FEE_BPS
+        );
+        RosterBtcPutSeries otherSeries = otherFactory.createSeries(
+            writer,
+            K_RAW,
+            PREMIUM_PER_LOT,
+            expiryTime,
+            "Other Put",
+            "OPUT"
+        );
 
         vm.prank(alice);
         vm.expectRevert(RosterOrderBook.SeriesMismatchedMUSD.selector);
         book.list(address(otherSeries), 1, 1e15);
     }
 
-    function test_order_book_constructor_rejects_factory_with_different_musd() public {
+    function test_order_book_constructor_rejects_factory_with_different_musd()
+        public
+    {
         MockERC20 otherMusd = new MockERC20("Other USD", "OUSD", 18);
-        RosterSeriesFactory otherFactory = new RosterSeriesFactory(address(otherMusd), address(btc));
+        RosterSeriesFactory otherFactory = new RosterSeriesFactory(
+            address(otherMusd),
+            address(btc),
+            feeRecipient,
+            FEE_BPS
+        );
 
         vm.expectRevert(RosterOrderBook.InvalidFactory.selector);
-        new RosterOrderBook(address(musd), address(otherFactory));
+        new RosterOrderBook(
+            address(musd),
+            address(otherFactory),
+            feeRecipient,
+            0
+        );
     }
 
     function test_list_and_partial_fill_moves_tokens_and_musd() public {
@@ -140,8 +232,13 @@ contract RosterOrderBookTest is TestBase {
         _assertEq(listingId, 1, "listing id");
         _assertEq(series.balanceOf(alice), 0, "alice escrowed");
         _assertEq(series.balanceOf(address(book)), 10, "book escrow");
-        (address seller, RosterBtcPutSeries listedSeries, uint256 pricePerLot, uint256 remaining, bool active) =
-            book.listings(listingId);
+        (
+            address seller,
+            RosterBtcPutSeries listedSeries,
+            uint256 pricePerLot,
+            uint256 remaining,
+            bool active
+        ) = book.listings(listingId);
         _assertEq(seller, alice, "seller");
         _assertEq(address(listedSeries), address(series), "series");
         _assertEq(pricePerLot, 2e15, "price");
@@ -157,7 +254,7 @@ contract RosterOrderBookTest is TestBase {
         _assertEq(series.balanceOf(address(book)), 6, "remaining escrow");
         _assertEq(musd.balanceOf(alice) - aliceBefore, 8e15, "seller paid");
         _assertEq(bobBefore - musd.balanceOf(bob), 8e15, "buyer charged");
-        (,,, remaining, active) = book.listings(listingId);
+        (, , , remaining, active) = book.listings(listingId);
         _assertEq(remaining, 6, "remaining after fill");
         _assertTrue(active, "still active");
     }
@@ -173,7 +270,7 @@ contract RosterOrderBookTest is TestBase {
         _assertEq(series.balanceOf(alice), 6, "alice remainder");
         _assertEq(series.balanceOf(bob), 4, "bob bought");
         _assertEq(series.balanceOf(address(book)), 0, "book empty");
-        (,,, uint256 remaining, bool active) = book.listings(listingId);
+        (, , , uint256 remaining, bool active) = book.listings(listingId);
         _assertEq(remaining, 0, "no remaining");
         _assertTrue(!active, "inactive");
     }
@@ -183,7 +280,7 @@ contract RosterOrderBookTest is TestBase {
         book.list(address(series), 3, 1e15);
         vm.prank(bob);
         book.fill(1, 3);
-        (,,, uint256 remaining, bool active) = book.listings(1);
+        (, , , uint256 remaining, bool active) = book.listings(1);
         _assertEq(remaining, 0, "remaining zero");
         _assertTrue(!active, "inactive");
         _assertEq(series.balanceOf(bob), 3, "bob lots");
@@ -257,11 +354,124 @@ contract RosterOrderBookTest is TestBase {
         vm.prank(bob);
         book.fill(1, 0);
     }
-}
 
-// ---------------------------------------------------------------------------
-// Trove-backed writer
-// ---------------------------------------------------------------------------
+    // -----------------------------------------------------------------------
+    // Fill-fee and sweep tests (Wave 2)
+    // -----------------------------------------------------------------------
+
+    function test_fill_fee_deducted_from_seller_proceeds() public {
+        // Deploy a book with a 100 bps (1%) fill fee.
+        RosterOrderBook feeBook = new RosterOrderBook(
+            address(musd),
+            address(factory),
+            feeRecipient,
+            100
+        );
+        vm.prank(alice);
+        series.approve(address(feeBook), type(uint256).max);
+        vm.prank(bob);
+        musd.approve(address(feeBook), type(uint256).max);
+
+        // Alice lists 5 lots at 2e15 MUSD each. Bob fills all 5.
+        vm.prank(alice);
+        uint256 listingId = feeBook.list(address(series), 5, 2e15);
+
+        uint256 grossCost = 5 * 2e15; // 1e16
+        uint256 feeCharged = (grossCost * 100) / 10_000; // 1e14
+        uint256 sellerProceeds = grossCost - feeCharged;
+
+        uint256 aliceBefore = musd.balanceOf(alice);
+        uint256 bobBefore = musd.balanceOf(bob);
+        uint256 bookBefore = musd.balanceOf(address(feeBook));
+
+        vm.prank(bob);
+        feeBook.fill(listingId, 5);
+
+        _assertEq(
+            musd.balanceOf(bob),
+            bobBefore - grossCost,
+            "buyer paid gross"
+        );
+        _assertEq(
+            musd.balanceOf(alice) - aliceBefore,
+            sellerProceeds,
+            "seller received net"
+        );
+        _assertEq(
+            musd.balanceOf(address(feeBook)) - bookBefore,
+            feeCharged,
+            "fee accrued in book"
+        );
+        _assertEq(feeBook.accruedFees(), feeCharged, "accruedFees updated");
+        _assertEq(series.balanceOf(bob), 5, "bob received lots");
+    }
+
+    function test_sweep_fees_to_recipient() public {
+        RosterOrderBook feeBook = new RosterOrderBook(
+            address(musd),
+            address(factory),
+            feeRecipient,
+            200 // 2%
+        );
+        vm.prank(alice);
+        series.approve(address(feeBook), type(uint256).max);
+        vm.prank(bob);
+        musd.approve(address(feeBook), type(uint256).max);
+
+        vm.prank(alice);
+        feeBook.list(address(series), 4, 1e15);
+        vm.prank(bob);
+        feeBook.fill(1, 4);
+
+        uint256 accrued = feeBook.accruedFees();
+        _assertTrue(accrued > 0, "fees accrued");
+
+        uint256 recipientBefore = musd.balanceOf(feeRecipient);
+        // sweepFees is permissionless
+        feeBook.sweepFees();
+        _assertEq(
+            musd.balanceOf(feeRecipient) - recipientBefore,
+            accrued,
+            "fees swept to recipient"
+        );
+        _assertEq(feeBook.accruedFees(), 0, "accruedFees zeroed");
+    }
+
+    function test_sweep_empty_reverts() public {
+        RosterOrderBook feeBook = new RosterOrderBook(
+            address(musd),
+            address(factory),
+            feeRecipient,
+            50
+        );
+        vm.expectRevert(RosterOrderBook.NothingToSweep.selector);
+        feeBook.sweepFees();
+    }
+
+    function test_zero_fill_fee_no_accrual() public {
+        // The existing `book` was deployed with fillFeeBps = 0.
+        vm.prank(alice);
+        uint256 listingId = book.list(address(series), 3, 2e15);
+        uint256 aliceBefore = musd.balanceOf(alice);
+        uint256 bobBefore = musd.balanceOf(bob);
+
+        vm.prank(bob);
+        book.fill(listingId, 3);
+
+        uint256 grossCost = 3 * 2e15;
+        _assertEq(
+            musd.balanceOf(bob),
+            bobBefore - grossCost,
+            "buyer paid full gross"
+        );
+        _assertEq(
+            musd.balanceOf(alice) - aliceBefore,
+            grossCost,
+            "seller got full gross (no fee)"
+        );
+        _assertEq(book.accruedFees(), 0, "no accrual when fee is zero");
+    }
+}
 
 contract MockPriceFeed {
     uint256 public price;
@@ -283,7 +493,7 @@ contract MockPool {
     receive() external payable {}
 
     function send(address payable to, uint256 amount) external {
-        (bool ok,) = to.call{value: amount}("");
+        (bool ok, ) = to.call{value: amount}("");
         require(ok, "mock pool send failed");
     }
 }
@@ -303,7 +513,11 @@ contract MockTroveSystem {
     mapping(address => uint256) public pendingInterest;
     uint256 public collateralSurplus;
 
-    constructor(MockERC20 musd_, address activePool_, address collSurplusPool_) {
+    constructor(
+        MockERC20 musd_,
+        address activePool_,
+        address collSurplusPool_
+    ) {
         musd = musd_;
         activePool = activePool_;
         collSurplusPool = collSurplusPool_;
@@ -339,14 +553,14 @@ contract MockTroveSystem {
         debt[msg.sender] = debtAmount + fee + MUSD_GAS_COMPENSATION;
         musd.mint(msg.sender, debtAmount);
         musd.mint(FEE_RECIPIENT, fee);
-        (bool ok,) = activePool.call{value: msg.value}("");
+        (bool ok, ) = activePool.call{value: msg.value}("");
         require(ok, "mock: open collateral transfer");
     }
 
     function addColl(address, address) external payable {
         require(status[msg.sender] == 1, "mock: no trove");
         coll[msg.sender] += msg.value;
-        (bool ok,) = activePool.call{value: msg.value}("");
+        (bool ok, ) = activePool.call{value: msg.value}("");
         require(ok, "mock: add collateral transfer");
     }
 
@@ -380,12 +594,18 @@ contract MockTroveSystem {
         uint256 debtAmount = debt[msg.sender];
         uint256 collateralAmount = coll[msg.sender];
         uint256 repayment = debtAmount - MUSD_GAS_COMPENSATION;
-        require(musd.balanceOf(msg.sender) >= repayment, "mock: insufficient musd");
+        require(
+            musd.balanceOf(msg.sender) >= repayment,
+            "mock: insufficient musd"
+        );
         musd.burn(msg.sender, repayment);
         status[msg.sender] = 2;
         coll[msg.sender] = 0;
         debt[msg.sender] = 0;
-        MockPool(payable(activePool)).send(payable(msg.sender), collateralAmount);
+        MockPool(payable(activePool)).send(
+            payable(msg.sender),
+            collateralAmount
+        );
     }
 
     function claimCollateral() external {
@@ -407,10 +627,37 @@ contract MockTroveSystem {
         return coll[borrower];
     }
 
-    function getCurrentICR(address borrower, uint256 price) external view returns (uint256) {
+    function getCurrentICR(
+        address borrower,
+        uint256 price
+    ) external view returns (uint256) {
         uint256 totalDebt = debt[borrower] + pendingInterest[borrower];
         if (totalDebt == 0) return type(uint256).max;
         return (coll[borrower] * price) / totalDebt;
+    }
+
+    // -----------------------------------------------------------------------
+    // Recovery Mode support (Wave 2)
+    // -----------------------------------------------------------------------
+
+    bool public recoveryModeOverride;
+    bool public recoveryModeOverrideSet;
+
+    /// @dev Test hook: force Recovery Mode on or off for vault guard tests.
+    function setRecoveryMode(bool inRecovery) external {
+        recoveryModeOverride = inRecovery;
+        recoveryModeOverrideSet = true;
+    }
+
+    function getTCR(uint256) external view returns (uint256) {
+        if (recoveryModeOverrideSet) {
+            return recoveryModeOverride ? 1.4e18 : 1.6e18;
+        }
+        return 1.6e18; // healthy by default
+    }
+
+    function checkRecoveryMode(uint256) external view returns (bool) {
+        return recoveryModeOverrideSet && recoveryModeOverride;
     }
 }
 
@@ -428,22 +675,53 @@ contract RosterTroveWriterTest is TestBase {
         activePool = new MockPool();
         collSurplusPool = new MockPool();
         priceFeed = new MockPriceFeed(80_000e18);
-        troveSystem = new MockTroveSystem(musd, address(activePool), address(collSurplusPool));
+        troveSystem = new MockTroveSystem(
+            musd,
+            address(activePool),
+            address(collSurplusPool)
+        );
         vault = new RosterTroveWriter(
-            writer, address(troveSystem), address(troveSystem), address(priceFeed), address(musd), address(btc), 1.5e18
+            writer,
+            address(troveSystem),
+            address(troveSystem),
+            address(priceFeed),
+            address(musd),
+            address(btc),
+            1.5e18
         );
 
-        factory = new RosterSeriesFactory(address(musd), address(btc));
-        vaultSeries = factory.createSeries(address(vault), K_RAW, PREMIUM_PER_LOT, expiryTime, "Trove Put", "TPUT");
+        factory = new RosterSeriesFactory(
+            address(musd),
+            address(btc),
+            feeRecipient,
+            FEE_BPS
+        );
+        vaultSeries = factory.createSeries(
+            address(vault),
+            K_RAW,
+            PREMIUM_PER_LOT,
+            expiryTime,
+            "Trove Put",
+            "TPUT"
+        );
 
         vm.prank(writer);
         vault.bindSeries(address(vaultSeries));
         vm.deal(writer, 10 ether);
     }
 
-    function _open(uint256 collateral, uint256 debtAmount, uint256 seriesDeposit) internal {
+    function _open(
+        uint256 collateral,
+        uint256 debtAmount,
+        uint256 seriesDeposit
+    ) internal {
         vm.prank(writer);
-        vault.openAndFund{value: collateral}(debtAmount, seriesDeposit, address(0), address(0));
+        vault.openAndFund{value: collateral}(
+            debtAmount,
+            seriesDeposit,
+            address(0),
+            address(0)
+        );
     }
 
     function _enableAlice() internal {
@@ -455,10 +733,22 @@ contract RosterTroveWriterTest is TestBase {
         _open(1 ether, 2_000e18, 1_500e18);
 
         _assertEq(vaultSeries.writer(), address(vault), "vault is writer");
-        _assertEq(vaultSeries.collateral_balance_raw(), 1_500e18, "series collateral");
+        _assertEq(
+            vaultSeries.collateral_balance_raw(),
+            1_500e18,
+            "series collateral"
+        );
         _assertEq(vaultSeries.premium_balance_raw(), 0, "no premium");
-        _assertEq(troveSystem.debt(address(vault)), 2_202e18, "trove debt incl fee and gas");
-        _assertEq(troveSystem.coll(address(vault)), 1 ether, "trove collateral");
+        _assertEq(
+            troveSystem.debt(address(vault)),
+            2_202e18,
+            "trove debt incl fee and gas"
+        );
+        _assertEq(
+            troveSystem.coll(address(vault)),
+            1 ether,
+            "trove collateral"
+        );
         _assertTrue(vault.isTroveActive(), "active trove");
         _assertEq(vault.totalDepositedToSeries(), 1_500e18, "tracked deposit");
         _assertEq(musd.balanceOf(address(vault)), 500e18, "idle borrowed musd");
@@ -466,14 +756,25 @@ contract RosterTroveWriterTest is TestBase {
 
     function test_trove_info_and_series_state() public {
         _open(1 ether, 2_000e18, 1_500e18);
-        (uint256 collateral, uint256 debt, uint256 icr, uint256 price, uint8 status) = vault.troveInfo();
+        (
+            uint256 collateral,
+            uint256 debt,
+            uint256 icr,
+            uint256 price,
+            uint8 status
+        ) = vault.troveInfo();
         _assertEq(collateral, 1 ether, "info collateral");
         _assertEq(debt, 2_202e18, "info debt");
         _assertTrue(icr >= 1.5e18, "icr above guardrail");
         _assertEq(price, 80_000e18, "price");
         _assertEq(status, 1, "status active");
 
-        (uint256 seriesCollateral, uint256 seriesPremium, uint256 activeLots, bool expired) = vault.seriesState();
+        (
+            uint256 seriesCollateral,
+            uint256 seriesPremium,
+            uint256 activeLots,
+            bool expired
+        ) = vault.seriesState();
         _assertEq(seriesCollateral, 1_500e18, "series collateral");
         _assertEq(seriesPremium, 0, "series premium");
         _assertEq(activeLots, 0, "active lots");
@@ -484,14 +785,24 @@ contract RosterTroveWriterTest is TestBase {
         vm.deal(alice, 1 ether);
         vm.prank(alice);
         vm.expectRevert(RosterTroveWriter.OnlyOwner.selector);
-        vault.openAndFund{value: 1 ether}(2_000e18, 1_500e18, address(0), address(0));
+        vault.openAndFund{value: 1 ether}(
+            2_000e18,
+            1_500e18,
+            address(0),
+            address(0)
+        );
     }
 
     function test_open_twice_reverts() public {
         _open(1 ether, 2_000e18, 1_500e18);
         vm.prank(writer);
         vm.expectRevert(RosterTroveWriter.TroveAlreadyOpen.selector);
-        vault.openAndFund{value: 1 ether}(2_000e18, 1_500e18, address(0), address(0));
+        vault.openAndFund{value: 1 ether}(
+            2_000e18,
+            1_500e18,
+            address(0),
+            address(0)
+        );
     }
 
     function test_open_rejects_bad_deposit_and_zero_collateral() public {
@@ -505,16 +816,34 @@ contract RosterTroveWriterTest is TestBase {
 
         vm.prank(writer);
         vm.expectRevert(RosterTroveWriter.InvalidDeposit.selector);
-        vault.openAndFund{value: 1 ether}(1_000e18, 1_500e18, address(0), address(0));
+        vault.openAndFund{value: 1 ether}(
+            1_000e18,
+            1_500e18,
+            address(0),
+            address(0)
+        );
     }
 
     function test_icr_guard_reverts_unsafe_open_atomically() public {
         vm.prank(writer);
         vm.expectRevert();
-        vault.openAndFund{value: 0.01 ether}(2_000e18, 1_500e18, address(0), address(0));
+        vault.openAndFund{value: 0.01 ether}(
+            2_000e18,
+            1_500e18,
+            address(0),
+            address(0)
+        );
 
-        _assertEq(troveSystem.getTroveStatus(address(vault)), 0, "trove rolled back");
-        _assertEq(vaultSeries.collateral_balance_raw(), 0, "series rolled back");
+        _assertEq(
+            troveSystem.getTroveStatus(address(vault)),
+            0,
+            "trove rolled back"
+        );
+        _assertEq(
+            vaultSeries.collateral_balance_raw(),
+            0,
+            "series rolled back"
+        );
         _assertEq(musd.balanceOf(address(vault)), 0, "musd rolled back");
     }
 
@@ -523,13 +852,25 @@ contract RosterTroveWriterTest is TestBase {
 
         vm.prank(writer);
         vault.addCollateral{value: 0.5 ether}(address(0), address(0));
-        _assertEq(troveSystem.coll(address(vault)), 1.5 ether, "added collateral");
+        _assertEq(
+            troveSystem.coll(address(vault)),
+            1.5 ether,
+            "added collateral"
+        );
         uint256 beforeWithdraw = writer.balance;
 
         vm.prank(writer);
         vault.withdrawCollateral(0.2 ether, address(0), address(0));
-        _assertEq(troveSystem.coll(address(vault)), 1.3 ether, "withdrawn collateral");
-        _assertEq(writer.balance - beforeWithdraw, 0.2 ether, "native returned");
+        _assertEq(
+            troveSystem.coll(address(vault)),
+            1.3 ether,
+            "withdrawn collateral"
+        );
+        _assertEq(
+            writer.balance - beforeWithdraw,
+            0.2 ether,
+            "native returned"
+        );
     }
 
     function test_borrow_more_and_deposit_to_series() public {
@@ -537,12 +878,24 @@ contract RosterTroveWriterTest is TestBase {
 
         vm.prank(writer);
         vault.borrowMore(100e18, address(0), address(0));
-        _assertEq(troveSystem.debt(address(vault)), 2_302e18 + 1e17, "debt increased with fee");
-        _assertEq(musd.balanceOf(address(vault)), 600e18, "idle musd increased");
+        _assertEq(
+            troveSystem.debt(address(vault)),
+            2_302e18 + 1e17,
+            "debt increased with fee"
+        );
+        _assertEq(
+            musd.balanceOf(address(vault)),
+            600e18,
+            "idle musd increased"
+        );
 
         vm.prank(writer);
         vault.depositToSeries(50e18);
-        _assertEq(vaultSeries.collateral_balance_raw(), 1_550e18, "series funded");
+        _assertEq(
+            vaultSeries.collateral_balance_raw(),
+            1_550e18,
+            "series funded"
+        );
         _assertEq(musd.balanceOf(address(vault)), 550e18, "idle reduced");
     }
 
@@ -554,7 +907,11 @@ contract RosterTroveWriterTest is TestBase {
         vm.prank(writer);
         vm.expectRevert();
         vault.borrowMore(60_000e18, address(0), address(0));
-        _assertEq(troveSystem.debt(address(vault)), 2_202e18, "debt rolled back");
+        _assertEq(
+            troveSystem.debt(address(vault)),
+            2_202e18,
+            "debt rolled back"
+        );
     }
 
     function test_partial_repay() public {
@@ -580,14 +937,32 @@ contract RosterTroveWriterTest is TestBase {
         vm.prank(writer);
         vault.closeTrove();
 
-        _assertEq(troveSystem.getTroveStatus(address(vault)), 2, "closed by owner");
+        _assertEq(
+            troveSystem.getTroveStatus(address(vault)),
+            2,
+            "closed by owner"
+        );
         _assertTrue(!vault.isTroveActive(), "not active");
-        _assertEq(writer.balance - writerBefore, 1 ether, "collateral returned");
-        _assertEq(musd.balanceOf(address(vault)), 0, "no unnecessary gas compensation retained");
-        _assertEq(musd.allowance(address(vault), address(troveSystem)), 0, "no protocol allowance");
+        _assertEq(
+            writer.balance - writerBefore,
+            1 ether,
+            "collateral returned"
+        );
+        _assertEq(
+            musd.balanceOf(address(vault)),
+            0,
+            "no unnecessary gas compensation retained"
+        );
+        _assertEq(
+            musd.allowance(address(vault), address(troveSystem)),
+            0,
+            "no protocol allowance"
+        );
     }
 
-    function test_close_trove_requires_external_musd_for_borrowing_fee() public {
+    function test_close_trove_requires_external_musd_for_borrowing_fee()
+        public
+    {
         _open(1 ether, 2_000e18, 1_500e18);
         vm.warp(expiryTime);
         vm.prank(alice);
@@ -611,13 +986,25 @@ contract RosterTroveWriterTest is TestBase {
         vm.prank(writer);
         vault.closeTrove();
 
-        _assertEq(troveSystem.getTroveStatus(address(vault)), 2, "trove closed");
-        _assertEq(musd.balanceOf(address(vault)), 1_500e18, "reserve preserved");
+        _assertEq(
+            troveSystem.getTroveStatus(address(vault)),
+            2,
+            "trove closed"
+        );
+        _assertEq(
+            musd.balanceOf(address(vault)),
+            1_500e18,
+            "reserve preserved"
+        );
 
         vm.prank(writer);
-        (uint256 released,) = vault.finalize();
+        (uint256 released, ) = vault.finalize();
         _assertEq(released, 1_500e18, "reserve forwarded");
-        _assertEq(writerBefore - musd.balanceOf(writer), 2e18, "net borrowing fee");
+        _assertEq(
+            writerBefore - musd.balanceOf(writer),
+            2e18,
+            "net borrowing fee"
+        );
     }
 
     function test_close_trove_updates_interest_before_top_up() public {
@@ -631,7 +1018,11 @@ contract RosterTroveWriterTest is TestBase {
         vm.prank(writer);
         vault.closeTrove();
 
-        _assertEq(troveSystem.getTroveStatus(address(vault)), 2, "closed after interest");
+        _assertEq(
+            troveSystem.getTroveStatus(address(vault)),
+            2,
+            "closed after interest"
+        );
         _assertEq(musd.balanceOf(address(vault)), 0, "interest fully repaid");
     }
 
@@ -651,17 +1042,23 @@ contract RosterTroveWriterTest is TestBase {
         vault.closeTrove();
 
         vm.prank(writer);
-        vm.expectRevert(abi.encodeWithSelector(RosterTroveWriter.TroveNotActive.selector, 2));
+        vm.expectRevert(
+            abi.encodeWithSelector(RosterTroveWriter.TroveNotActive.selector, 2)
+        );
         vault.closeTrove();
     }
 
     function test_add_and_borrow_require_active_trove() public {
         vm.prank(writer);
-        vm.expectRevert(abi.encodeWithSelector(RosterTroveWriter.TroveNotActive.selector, 0));
+        vm.expectRevert(
+            abi.encodeWithSelector(RosterTroveWriter.TroveNotActive.selector, 0)
+        );
         vault.addCollateral{value: 1 ether}(address(0), address(0));
 
         vm.prank(writer);
-        vm.expectRevert(abi.encodeWithSelector(RosterTroveWriter.TroveNotActive.selector, 0));
+        vm.expectRevert(
+            abi.encodeWithSelector(RosterTroveWriter.TroveNotActive.selector, 0)
+        );
         vault.borrowMore(1e18, address(0), address(0));
     }
 
@@ -674,13 +1071,17 @@ contract RosterTroveWriterTest is TestBase {
         vm.prank(writer);
         uint256 received = vault.claimCollateral();
         _assertEq(received, 0.1 ether, "surplus received");
-        _assertEq(writer.balance - writerBefore, 0.1 ether, "surplus forwarded");
+        _assertEq(
+            writer.balance - writerBefore,
+            0.1 ether,
+            "surplus forwarded"
+        );
     }
 
     function test_receive_rejects_unexpected_native_sender() public {
         vm.deal(attacker, 1);
         vm.prank(attacker);
-        (bool ok,) = address(vault).call{value: 1}("");
+        (bool ok, ) = address(vault).call{value: 1}("");
         _assertTrue(!ok, "stranger native rejected");
     }
 
@@ -694,7 +1095,11 @@ contract RosterTroveWriterTest is TestBase {
         vm.prank(writer);
         uint256 premium = vault.withdrawPremium();
         _assertEq(premium, 10 * PREMIUM_PER_LOT, "premium withdrawn");
-        _assertEq(musd.balanceOf(writer) - writerBefore, 10 * PREMIUM_PER_LOT, "premium forwarded");
+        _assertEq(
+            musd.balanceOf(writer) - writerBefore,
+            10 * PREMIUM_PER_LOT,
+            "premium forwarded"
+        );
 
         vm.warp(expiryTime);
         uint256 beforeFinalize = musd.balanceOf(writer);
@@ -702,9 +1107,17 @@ contract RosterTroveWriterTest is TestBase {
         (uint256 released, uint256 finalPremium) = vault.finalize();
         _assertEq(released, 1_500e18, "excess collateral released");
         _assertEq(finalPremium, 0, "premium already withdrawn");
-        _assertEq(musd.balanceOf(writer) - beforeFinalize, 1_500e18, "collateral forwarded");
+        _assertEq(
+            musd.balanceOf(writer) - beforeFinalize,
+            1_500e18,
+            "collateral forwarded"
+        );
         _assertTrue(vaultSeries.expired(), "series expired");
-        _assertEq(musd.balanceOf(address(vault)), 500e18, "idle borrow remains");
+        _assertEq(
+            musd.balanceOf(address(vault)),
+            500e18,
+            "idle borrow remains"
+        );
     }
 
     function test_withdraw_btc_exercise_proceeds() public {
@@ -719,7 +1132,11 @@ contract RosterTroveWriterTest is TestBase {
         vaultSeries.exercise(100);
 
         uint256 exerciseBtc = 100 * 1e12;
-        _assertEq(btc.balanceOf(address(vault)), exerciseBtc, "vault holds exercise proceeds");
+        _assertEq(
+            btc.balanceOf(address(vault)),
+            exerciseBtc,
+            "vault holds exercise proceeds"
+        );
 
         vm.prank(alice);
         vm.expectRevert(RosterTroveWriter.OnlyOwner.selector);
@@ -728,7 +1145,11 @@ contract RosterTroveWriterTest is TestBase {
         uint256 writerBefore = btc.balanceOf(writer);
         vm.prank(writer);
         vault.withdrawBtc(writer, exerciseBtc);
-        _assertEq(btc.balanceOf(writer) - writerBefore, exerciseBtc, "btc forwarded");
+        _assertEq(
+            btc.balanceOf(writer) - writerBefore,
+            exerciseBtc,
+            "btc forwarded"
+        );
         _assertEq(btc.balanceOf(address(vault)), 0, "vault btc cleared");
     }
 
@@ -739,22 +1160,40 @@ contract RosterTroveWriterTest is TestBase {
         // Anyone may finalize the series; the released MUSD lands in the vault.
         vm.prank(alice);
         vaultSeries.expire();
-        _assertEq(musd.balanceOf(address(vault)), 2_000e18, "idle plus released");
+        _assertEq(
+            musd.balanceOf(address(vault)),
+            2_000e18,
+            "idle plus released"
+        );
         _assertEq(vault.reservedMUSD(), 1_500e18, "release reserved");
 
         vm.prank(writer);
-        vm.expectRevert(abi.encodeWithSelector(RosterTroveWriter.InsufficientIdleMUSD.selector, 1_600e18, 500e18));
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                RosterTroveWriter.InsufficientIdleMUSD.selector,
+                1_600e18,
+                500e18
+            )
+        );
         vault.withdrawIdleMUSD(1_600e18);
 
         vm.prank(writer);
         vault.withdrawIdleMUSD(500e18);
-        _assertEq(musd.balanceOf(address(vault)), 1_500e18, "only idle withdrawn");
+        _assertEq(
+            musd.balanceOf(address(vault)),
+            1_500e18,
+            "only idle withdrawn"
+        );
 
         uint256 writerBefore = musd.balanceOf(writer);
         vm.prank(writer);
-        (uint256 released,) = vault.finalize();
+        (uint256 released, ) = vault.finalize();
         _assertEq(released, 1_500e18, "release forwarded once");
-        _assertEq(musd.balanceOf(writer) - writerBefore, 1_500e18, "writer received release");
+        _assertEq(
+            musd.balanceOf(writer) - writerBefore,
+            1_500e18,
+            "writer received release"
+        );
         _assertEq(vault.reservedMUSD(), 0, "reserve cleared");
 
         vm.prank(writer);
@@ -775,35 +1214,68 @@ contract RosterTroveWriterTest is TestBase {
         vm.prank(writer);
         vault.closeTrove();
 
-        _assertEq(troveSystem.getTroveStatus(address(vault)), 2, "trove closed");
-        _assertEq(musd.balanceOf(address(vault)), 1_500e18, "reserved proceeds preserved");
+        _assertEq(
+            troveSystem.getTroveStatus(address(vault)),
+            2,
+            "trove closed"
+        );
+        _assertEq(
+            musd.balanceOf(address(vault)),
+            1_500e18,
+            "reserved proceeds preserved"
+        );
         _assertEq(vault.reservedMUSD(), 1_500e18, "still reserved");
 
         uint256 writerBefore = musd.balanceOf(writer);
         vm.prank(writer);
         vault.finalize();
-        _assertEq(musd.balanceOf(writer) - writerBefore, 1_500e18, "release forwarded");
+        _assertEq(
+            musd.balanceOf(writer) - writerBefore,
+            1_500e18,
+            "release forwarded"
+        );
     }
 
     function test_open_requires_bound_series_and_bind_validation() public {
         RosterTroveWriter unbound = new RosterTroveWriter(
-            writer, address(troveSystem), address(troveSystem), address(priceFeed), address(musd), address(btc), 1.5e18
+            writer,
+            address(troveSystem),
+            address(troveSystem),
+            address(priceFeed),
+            address(musd),
+            address(btc),
+            1.5e18
         );
 
         vm.prank(writer);
         vm.expectRevert(RosterTroveWriter.SeriesNotBound.selector);
-        unbound.openAndFund{value: 1 ether}(2_000e18, 1_500e18, address(0), address(0));
+        unbound.openAndFund{value: 1 ether}(
+            2_000e18,
+            1_500e18,
+            address(0),
+            address(0)
+        );
 
         // A series whose writer is not this vault cannot be bound.
         vm.prank(writer);
         vm.expectRevert(RosterTroveWriter.InvalidSeries.selector);
         unbound.bindSeries(address(series));
 
-        RosterBtcPutSeries matching =
-            factory.createSeries(address(unbound), K_RAW, PREMIUM_PER_LOT, expiryTime, "Unbound Put", "UPUT");
+        RosterBtcPutSeries matching = factory.createSeries(
+            address(unbound),
+            K_RAW,
+            PREMIUM_PER_LOT,
+            expiryTime,
+            "Unbound Put",
+            "UPUT"
+        );
         vm.prank(writer);
         unbound.bindSeries(address(matching));
-        _assertEq(address(unbound.series()), address(matching), "bound matching series");
+        _assertEq(
+            address(unbound.series()),
+            address(matching),
+            "bound matching series"
+        );
 
         vm.prank(writer);
         vm.expectRevert(RosterTroveWriter.SeriesAlreadyBound.selector);
@@ -834,5 +1306,142 @@ contract RosterTroveWriterTest is TestBase {
         vm.prank(alice);
         vault.setMinICR(1.7e18);
         _assertEq(vault.minICR(), 1.7e18, "new owner can update");
+    }
+
+    // -----------------------------------------------------------------------
+    // Recovery Mode tests (Wave 2)
+    // -----------------------------------------------------------------------
+
+    function test_open_blocked_in_recovery_mode() public {
+        // Force the mock trove system into Recovery Mode.
+        troveSystem.setRecoveryMode(true);
+        _assertTrue(vault.isInRecoveryMode(), "vault sees recovery mode");
+
+        vm.prank(writer);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                RosterTroveWriter.RecoveryModeActive.selector,
+                1.4e18
+            )
+        );
+        vault.openAndFund{value: 1 ether}(
+            2_000e18,
+            1_500e18,
+            address(0),
+            address(0)
+        );
+
+        // Trove must not have been opened.
+        _assertEq(
+            troveSystem.getTroveStatus(address(vault)),
+            0,
+            "trove not opened"
+        );
+    }
+
+    function test_borrow_more_blocked_in_recovery_mode() public {
+        // Open normally first.
+        _open(1 ether, 2_000e18, 1_500e18);
+
+        // Now enter Recovery Mode.
+        troveSystem.setRecoveryMode(true);
+
+        vm.prank(writer);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                RosterTroveWriter.RecoveryModeActive.selector,
+                1.4e18
+            )
+        );
+        vault.borrowMore(100e18, address(0), address(0));
+
+        // Debt must be unchanged.
+        _assertEq(troveSystem.debt(address(vault)), 2_202e18, "debt unchanged");
+    }
+
+    function test_repay_allowed_in_recovery_mode() public {
+        // Repayment reduces system debt — always allowed.
+        _open(1 ether, 2_000e18, 1_500e18);
+        troveSystem.setRecoveryMode(true);
+
+        vm.prank(writer);
+        vault.withdrawIdleMUSD(200e18);
+        vm.prank(writer);
+        musd.approve(address(vault), 100e18);
+
+        vm.prank(writer);
+        vault.repay(100e18, address(0), address(0));
+        _assertEq(
+            troveSystem.debt(address(vault)),
+            2_102e18,
+            "repayment succeeded in recovery mode"
+        );
+    }
+
+    function test_add_collateral_allowed_in_recovery_mode() public {
+        // Adding collateral improves the system ICR — always allowed.
+        _open(1 ether, 2_000e18, 1_500e18);
+        troveSystem.setRecoveryMode(true);
+
+        vm.prank(writer);
+        vault.addCollateral{value: 0.5 ether}(address(0), address(0));
+        _assertEq(
+            troveSystem.coll(address(vault)),
+            1.5 ether,
+            "collateral added in recovery mode"
+        );
+    }
+
+    function test_close_trove_allowed_in_recovery_mode() public {
+        // Closing a trove removes all its debt — improves system health.
+        _open(1 ether, 2_000e18, 1_500e18);
+        troveSystem.setRecoveryMode(true);
+
+        vm.prank(writer);
+        vault.withdrawIdleMUSD(500e18);
+        vm.prank(writer);
+        musd.approve(address(vault), 2_002e18);
+
+        vm.prank(writer);
+        vault.closeTrove();
+        _assertEq(
+            troveSystem.getTroveStatus(address(vault)),
+            2,
+            "trove closed in recovery mode"
+        );
+    }
+
+    function test_recovery_mode_view_helpers() public {
+        _assertTrue(!vault.isInRecoveryMode(), "normal mode initially");
+        _assertTrue(vault.systemTCR() >= 1.5e18, "healthy TCR");
+
+        troveSystem.setRecoveryMode(true);
+        _assertTrue(vault.isInRecoveryMode(), "recovery mode after override");
+        _assertTrue(
+            vault.systemTCR() < 1.5e18,
+            "depressed TCR in recovery mode"
+        );
+    }
+
+    function test_liquidation_surplus_claimable_after_recovery_liquidation()
+        public
+    {
+        // Simulate a liquidation with a collateral surplus left in CollSurplusPool.
+        _open(1 ether, 2_000e18, 1_500e18);
+        // The trove is liquidated externally (status set to 3 by the protocol).
+        // CollSurplusPool receives the surplus.
+        vm.deal(address(collSurplusPool), 0.05 ether);
+        troveSystem.setCollateralSurplus(0.05 ether);
+        // Manually set trove status to simulate liquidated state.
+        // The vault should still be able to claim the surplus.
+        uint256 writerBefore = writer.balance;
+        vm.prank(writer);
+        uint256 received = vault.claimCollateral();
+        _assertEq(received, 0.05 ether, "surplus claimed after liquidation");
+        _assertEq(
+            writer.balance - writerBefore,
+            0.05 ether,
+            "surplus forwarded to owner"
+        );
     }
 }

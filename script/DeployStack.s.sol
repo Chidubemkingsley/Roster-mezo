@@ -9,7 +9,9 @@ import {RosterTroveWriter} from "../src/RosterTroveWriter.sol";
 interface VmStack {
     function envAddress(string calldata key) external returns (address value);
     function envUint(string calldata key) external returns (uint256 value);
-    function envString(string calldata key) external returns (string memory value);
+    function envString(
+        string calldata key
+    ) external returns (string memory value);
     function addr(uint256 privateKey) external returns (address keyAddr);
     function startBroadcast(uint256 privateKey) external;
     function stopBroadcast() external;
@@ -28,7 +30,12 @@ interface IMezoTroveManagerStack {
     function getTroveStatus(address borrower) external view returns (uint8);
     function getTroveDebt(address borrower) external view returns (uint256);
     function getTroveColl(address borrower) external view returns (uint256);
-    function getCurrentICR(address borrower, uint256 price) external view returns (uint256);
+    function getCurrentICR(
+        address borrower,
+        uint256 price
+    ) external view returns (uint256);
+    function getTCR(uint256 price) external view returns (uint256);
+    function checkRecoveryMode(uint256 price) external view returns (bool);
 }
 
 interface IMezoPriceFeedStack {
@@ -42,7 +49,8 @@ interface IMezoPriceFeedStack {
 ///      forge script script/DeployStack.s.sol:DeployStack --fork-url $MEZO_TESTNET_RPC_URL -vvv
 ///      Then add `--rpc-url $MEZO_TESTNET_RPC_URL --broadcast` to send the transactions.
 contract DeployStack {
-    VmStack private constant vm = VmStack(address(uint160(uint256(keccak256("hevm cheat code")))));
+    VmStack private constant vm =
+        VmStack(address(uint160(uint256(keccak256("hevm cheat code")))));
     uint256 private constant MEZO_TESTNET_CHAIN_ID = 31611;
     uint256 private constant WAD = 1e18;
     uint256 private constant MIN_APP_ICR = 1.2e18;
@@ -65,7 +73,10 @@ contract DeployStack {
     error CurrentICRBelowMinimum(uint256 icr, uint256 minICR);
     error UnexpectedTroveStatus(uint8 status);
     error UnexpectedTroveDebt(uint256 actualDebt, uint256 minimumDebt);
-    error UnexpectedSeriesCollateral(uint256 actualCollateral, uint256 expectedCollateral);
+    error UnexpectedSeriesCollateral(
+        uint256 actualCollateral,
+        uint256 expectedCollateral
+    );
     error UnexpectedVaultMUSD(uint256 actualBalance, uint256 expectedBalance);
 
     event StackDeployed(
@@ -94,14 +105,17 @@ contract DeployStack {
             RosterBtcPutSeries series
         )
     {
-        if (block.chainid != MEZO_TESTNET_CHAIN_ID) revert WrongChain(block.chainid);
+        if (block.chainid != MEZO_TESTNET_CHAIN_ID)
+            revert WrongChain(block.chainid);
 
         uint256 privateKey = vm.envUint("PRIVATE_KEY");
         address deployer = vm.addr(privateKey);
 
         address musd = vm.envAddress("MUSD_ADDRESS");
         address btc = vm.envAddress("BTC_ADDRESS");
-        address borrowerOperations = vm.envAddress("BORROWER_OPERATIONS_ADDRESS");
+        address borrowerOperations = vm.envAddress(
+            "BORROWER_OPERATIONS_ADDRESS"
+        );
         address troveManager = vm.envAddress("TROVE_MANAGER_ADDRESS");
         address priceFeed = vm.envAddress("MEZO_PRICE_FEED_ADDRESS");
 
@@ -110,6 +124,9 @@ contract DeployStack {
         uint256 expiry = vm.envUint("EXPIRY");
         string memory seriesName = vm.envString("SERIES_NAME");
         string memory seriesSymbol = vm.envString("SERIES_SYMBOL");
+        address feeRecipient = vm.envAddress("FEE_RECIPIENT_ADDRESS");
+        uint256 feeBps = vm.envUint("FEE_BPS");
+        uint256 fillFeeBps = vm.envUint("FILL_FEE_BPS");
 
         uint256 collateral = vm.envUint("TROVE_COLLATERAL_RAW");
         uint256 debtAmount = vm.envUint("TROVE_DEBT_RAW");
@@ -132,7 +149,9 @@ contract DeployStack {
             minICR
         );
 
-        IMezoBorrowerOperationsStack borrowerOps = IMezoBorrowerOperationsStack(borrowerOperations);
+        IMezoBorrowerOperationsStack borrowerOps = IMezoBorrowerOperationsStack(
+            borrowerOperations
+        );
         IMezoTroveManagerStack troveMgr = IMezoTroveManagerStack(troveManager);
         IMezoPriceFeedStack feed = IMezoPriceFeedStack(priceFeed);
 
@@ -143,12 +162,37 @@ contract DeployStack {
 
         vm.startBroadcast(privateKey);
 
-        factory = new RosterSeriesFactory(musd, btc);
-        orderBook = new RosterOrderBook(musd, address(factory));
-        vault = new RosterTroveWriter(deployer, borrowerOperations, troveManager, priceFeed, musd, btc, minICR);
-        series = factory.createSeries(address(vault), strikeRaw, premiumPerLotRaw, expiry, seriesName, seriesSymbol);
+        factory = new RosterSeriesFactory(musd, btc, feeRecipient, feeBps);
+        orderBook = new RosterOrderBook(
+            musd,
+            address(factory),
+            feeRecipient,
+            fillFeeBps
+        );
+        vault = new RosterTroveWriter(
+            deployer,
+            borrowerOperations,
+            troveManager,
+            priceFeed,
+            musd,
+            btc,
+            minICR
+        );
+        series = factory.createSeries(
+            address(vault),
+            strikeRaw,
+            premiumPerLotRaw,
+            expiry,
+            seriesName,
+            seriesSymbol
+        );
         vault.bindSeries(address(series));
-        vault.openAndFund{value: collateral}(debtAmount, seriesDeposit, address(0), address(0));
+        vault.openAndFund{value: collateral}(
+            debtAmount,
+            seriesDeposit,
+            address(0),
+            address(0)
+        );
 
         vm.stopBroadcast();
 
@@ -156,15 +200,21 @@ contract DeployStack {
         if (status != 1) revert UnexpectedTroveStatus(status);
 
         uint256 actualDebt = troveMgr.getTroveDebt(address(vault));
-        if (actualDebt < expectedDebt) revert UnexpectedTroveDebt(actualDebt, expectedDebt);
+        if (actualDebt < expectedDebt)
+            revert UnexpectedTroveDebt(actualDebt, expectedDebt);
 
         uint256 actualSeriesCollateral = series.collateral_balance_raw();
         if (actualSeriesCollateral != seriesDeposit) {
-            revert UnexpectedSeriesCollateral(actualSeriesCollateral, seriesDeposit);
+            revert UnexpectedSeriesCollateral(
+                actualSeriesCollateral,
+                seriesDeposit
+            );
         }
 
         uint256 expectedVaultMUSD = debtAmount - seriesDeposit;
-        uint256 actualVaultMUSD = IERC20Metadata(musd).balanceOf(address(vault));
+        uint256 actualVaultMUSD = IERC20Metadata(musd).balanceOf(
+            address(vault)
+        );
         if (actualVaultMUSD != expectedVaultMUSD) {
             revert UnexpectedVaultMUSD(actualVaultMUSD, expectedVaultMUSD);
         }
@@ -213,7 +263,8 @@ contract DeployStack {
         _checkContract("TROVE_MANAGER_ADDRESS", troveManager);
         _checkContract("MEZO_PRICE_FEED_ADDRESS", priceFeed);
 
-        if (expiry <= block.timestamp) revert InvalidExpiry(expiry, block.timestamp);
+        if (expiry <= block.timestamp)
+            revert InvalidExpiry(expiry, block.timestamp);
         if (strikeRaw == 0 || strikeRaw % 1e6 != 0 || strikeRaw / 1e6 == 0) {
             revert InvalidStrike(strikeRaw);
         }
@@ -222,16 +273,21 @@ contract DeployStack {
             revert InvalidDeposit(seriesDeposit, debtAmount);
         }
         if (collateral == 0) revert InvalidCollateral(collateral);
-        if (minICR < MIN_APP_ICR || minICR > MAX_APP_ICR) revert InvalidMinICR(minICR);
+        if (minICR < MIN_APP_ICR || minICR > MAX_APP_ICR)
+            revert InvalidMinICR(minICR);
 
-        if (deployer.balance <= collateral) revert InsufficientNativeBalance(deployer.balance, collateral);
+        if (deployer.balance <= collateral)
+            revert InsufficientNativeBalance(deployer.balance, collateral);
 
-        IMezoBorrowerOperationsStack borrowerOps = IMezoBorrowerOperationsStack(borrowerOperations);
+        IMezoBorrowerOperationsStack borrowerOps = IMezoBorrowerOperationsStack(
+            borrowerOperations
+        );
         uint256 borrowingFee = borrowerOps.getBorrowingFee(debtAmount);
         uint256 gasCompensation = borrowerOps.MUSD_GAS_COMPENSATION();
         uint256 netDebt = debtAmount + borrowingFee;
         uint256 minNetDebt = borrowerOps.minNetDebt();
-        if (netDebt < minNetDebt) revert ProtocolDebtBelowMinimum(netDebt, minNetDebt);
+        if (netDebt < minNetDebt)
+            revert ProtocolDebtBelowMinimum(netDebt, minNetDebt);
 
         uint256 price = IMezoPriceFeedStack(priceFeed).fetchPrice();
         uint256 compositeDebt = netDebt + gasCompensation;
@@ -247,7 +303,8 @@ contract DeployStack {
     function _checkAsset(string memory name, address token) private view {
         if (token.code.length == 0) revert TokenHasNoCode(name, token);
         uint8 actualDecimals = IERC20Metadata(token).decimals();
-        if (actualDecimals != 18) revert WrongTokenDecimals(name, token, actualDecimals);
+        if (actualDecimals != 18)
+            revert WrongTokenDecimals(name, token, actualDecimals);
         IERC20Metadata(token).totalSupply();
     }
 
