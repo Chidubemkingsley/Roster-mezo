@@ -1350,10 +1350,10 @@ Roster product. The full transaction ledger and limitations are in
 
 **Wave 2 contracts:**
 
-- Factory (W2): `https://explorer.test.mezo.org/address/0x1ee9eCc9E526c41c9D190dDD06FF286deb6727c9`
-- Order book (W2): `https://explorer.test.mezo.org/address/0xeecAb683D93a483669D797E4B7a06e8c286A25dC`
-- Vault (W2): `https://explorer.test.mezo.org/address/0xc3Ff91EF99fcB8AE19CAc7698BB1eFAAd704C243`
-- Series (W2): `https://explorer.test.mezo.org/address/0x68540003Ee52F73C3F2D8D6508227E8eCd5E767b`
+- [Factory (W2)](https://explorer.test.mezo.org/address/0x1ee9eCc9E526c41c9D190dDD06FF286deb6727c9) ✓ verified
+- [Order book (W2)](https://explorer.test.mezo.org/address/0xeecAb683D93a483669D797E4B7a06e8c286A25dC) ✓ verified
+- [Vault (W2)](https://explorer.test.mezo.org/address/0xc3Ff91EF99fcB8AE19CAc7698BB1eFAAd704C243) ✓ verified
+- [Series (W2)](https://explorer.test.mezo.org/address/0x68540003Ee52F73C3F2D8D6508227E8eCd5E767b) ✓ verified
 
 ### 17.2 Source verification (Wave 2 contracts)
 

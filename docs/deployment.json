@@ -655,7 +655,7 @@
       "exerciseExecuted": true,
       "repayBlockedByMinNetDebt": true,
       "closeCoveredByUnitTests": true,
-      "contractsVerifiedOnExplorer": false,
+      "contractsVerifiedOnExplorer": true,
       "independentUsers": false,
       "videoRecut": false
     },
