@@ -226,6 +226,18 @@ Wave 2 on-chain state (verified via `cast call`):
 - Recovery Mode: `false`; system TCR: 263.3%
 - Repay: blocked by Mezo's 1800 MUSD minimum net debt floor (expected at minimum trove size)
 
+### Outside users
+
+Three independent wallets (not the deployer) participated in the Wave 2 demo:
+
+| User | Wallet                                       | Action                         | Status                                                                                                        |
+| ---- | -------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| 1    | `0x7AC3E17d611a0D713A0001ede733682F96ab482c` | Buy 5 lots                     | ✅ [tx](https://explorer.test.mezo.org/tx/0x7878942da8e38aa3be5f71427b87c34179925b1085d945bc83b7143478aba084) |
+| 2    | `0xE205763A73194bF38E812727Ce5C8537d2F77429` | Buy 3 lots + list on secondary | Pending                                                                                                       |
+| 3    | `0xEBc4743135C585ca08BF649F424265EccfbA4d47` | Fill listing on secondary      | Pending                                                                                                       |
+
+Full evidence record: [`docs/OUTSIDE_USERS.md`](docs/OUTSIDE_USERS.md)
+
 ---
 
 ## 4. Main series terms and capacity
@@ -1614,6 +1626,7 @@ Medium-term:
 | [`docs/VALIDATION_STATUS.md`](docs/VALIDATION_STATUS.md) | Validation and live-state summary                                           | Current; includes Wave 2 fee model and Recovery Mode guard                          |
 | [`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md)           | Threat model and assumptions                                                | Current for the deployed design, including wrapper/pool risks                       |
 | [`docs/DEPLOYMENT_RECORD.md`](docs/DEPLOYMENT_RECORD.md) | Addresses, hashes, terms, snapshots                                         | Current; live record                                                                |
+| [`docs/OUTSIDE_USERS.md`](docs/OUTSIDE_USERS.md)         | Independent wallet evidence for Wave 2 demo                                 | Current; User 1 complete, Users 2-3 pending                                         |
 | [`docs/deployment.json`](docs/deployment.json)           | Machine-readable deployment state                                           | Current snapshot plus app and composability evidence                                |
 | [`docs/WEB_APP.md`](docs/WEB_APP.md)                     | Full multi-page web-app inventory                                           | Current; read-only browser pass recorded; wrapper/pool not surfaced                 |
 | [`docs/screenshots/`](docs/screenshots/)                 | Desktop and mobile browser screenshots                                      | Read-only evidence; no wallet transaction                                           |
