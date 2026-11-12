@@ -230,11 +230,11 @@ Wave 2 on-chain state (verified via `cast call`):
 
 Three independent wallets (not the deployer) participated in the Wave 2 demo:
 
-| User | Wallet                                       | Action                         | Status                                                                                                        |
-| ---- | -------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------- |
-| 1    | `0x7AC3E17d611a0D713A0001ede733682F96ab482c` | Buy 5 lots                     | ✅ [tx](https://explorer.test.mezo.org/tx/0x7878942da8e38aa3be5f71427b87c34179925b1085d945bc83b7143478aba084) |
-| 2    | `0xE205763A73194bF38E812727Ce5C8537d2F77429` | Buy 3 lots + list on secondary | Pending                                                                                                       |
-| 3    | `0xEBc4743135C585ca08BF649F424265EccfbA4d47` | Fill listing on secondary      | Pending                                                                                                       |
+| User | Wallet                                       | Action                         | Status                                                                                                                                                                                                                        |
+| ---- | -------------------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | `0x7AC3E17d611a0D713A0001ede733682F96ab482c` | Buy 5 lots                     | ✅ [tx](https://explorer.test.mezo.org/tx/0x7878942da8e38aa3be5f71427b87c34179925b1085d945bc83b7143478aba084)                                                                                                                 |
+| 2    | `0xE205763A73194bF38E812727Ce5C8537d2F77429` | Buy 3 lots + list on secondary | ✅ [buy](https://explorer.test.mezo.org/tx/0x8c0658310029adebb699859bc657db2139dded952ad51c9b1d9a3212c7f80bb9) · [list](https://explorer.test.mezo.org/tx/0xfc3ef54b2105b61f741c50cdaf8785d83281203c32c5adf9a8bb38c56a008d4e) |
+| 3    | `0xEBc4743135C585ca08BF649F424265EccfbA4d47` | Fill listing on secondary      | Pending                                                                                                                                                                                                                       |
 
 Full evidence record: [`docs/OUTSIDE_USERS.md`](docs/OUTSIDE_USERS.md)
 
