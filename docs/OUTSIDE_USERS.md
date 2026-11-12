@@ -69,18 +69,23 @@ Listing transaction confirms:
 
 ## User 3 — Fill the listing
 
-| Field  | Value                                        |
-| ------ | -------------------------------------------- |
-| Wallet | `0xEBc4743135C585ca08BF649F424265EccfbA4d47` |
-| Action | Fill User 2's listing on the order book      |
-| Status | Pending                                      |
+| Field                | Value                                                                                                                                                                        |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Wallet               | `0xEBc4743135C585ca08BF649F424265EccfbA4d47`                                                                                                                                 |
+| Action               | Fill User 2's listing (3 lots at 0.002 MUSD/lot) on the order book                                                                                                           |
+| Gross cost           | 0.006 MUSD                                                                                                                                                                   |
+| Fill fee (0.3%)      | 0.000018 MUSD accrued in order book                                                                                                                                          |
+| Seller proceeds      | 0.005982 MUSD to User 2                                                                                                                                                      |
+| Transaction          | [`0x87c03daf576b77cbbaaade729ec5b3640c7ee1210b9e1847e71e99348727adcb`](https://explorer.test.mezo.org/tx/0x87c03daf576b77cbbaaade729ec5b3640c7ee1210b9e1847e71e99348727adcb) |
+| Status               | ✅ Complete (status 1)                                                                                                                                                       |
+| Position tokens held | 3 (received from order book escrow)                                                                                                                                          |
 
-Instructions for User 3:
+Fill transaction confirms:
 
-1. Connect MetaMask on Mezo testnet (chain 31611)
-2. Go to the Secondary page
-3. Find User 2's listing (3 lots at 0.002 MUSD/lot)
-4. Click Fill — MetaMask will ask to approve MUSD to the order book, then confirm the fill
+- `Transfer(User 3, orderBook, 0.006 MUSD)` — buyer paid gross
+- `Transfer(orderBook, User 2, 0.005982 MUSD)` — seller received net (gross minus 0.3% fill fee)
+- `Transfer(orderBook, User 3, 3)` — 3 position tokens delivered from escrow
+- `Filled(listingId=2, User 3, 3, 0.006, 0.000018)` — fill event with gross and fee charged
 
 ---
 
