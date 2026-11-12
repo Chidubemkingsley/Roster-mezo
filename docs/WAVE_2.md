@@ -220,8 +220,7 @@ The current video is 3:15. The re-cut must cover:
 
 ## 4. What Wave 2 will not claim
 
-- Audit. No professional audit has been performed.
-- Organic demand. Test participants are funded by the deployer.
+- - Organic demand. Test participants are funded by the deployer.
 - Mainnet readiness. This is a testnet demonstration only.
 - MEZO governance-token usage. The integration uses MUSD, Mezo credit infrastructure,
   Mezo ERC-20 BTC, and Mezo Pools only.

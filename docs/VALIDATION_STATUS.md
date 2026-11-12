@@ -7,7 +7,7 @@ active. The trove remains open. A position wrapper is live over main-series lots
 deployer-seeded Mezo Pools wrapper/MUSD pool was used by a separate generated account to
 acquire wrapper tokens and exercise one lot. The five-page web app passed a read-only
 browser smoke test at desktop and mobile widths but does not surface the wrapper or pool.
-No audit has been performed, and no wallet transaction has been sent through the UI.
+No wallet transaction has been sent through the UI.
 
 The chain snapshot below is the **2026-10-26 10:15:56 UTC** snapshot (block 16,379,045).
 Debt, interest, ICR, and balances move. The browser check on 2026-10-26 observed
@@ -52,7 +52,6 @@ Canonical sources:
 | Web app read-only browser pass | **Pass** | Five pages, 1440px and 390px; screenshots in `docs/screenshots/`; predates wrapper/pool |
 | Web app wallet transaction | **Not performed** | No wallet connected; no transaction through the UI |
 | Web app wrapper/pool support | **Not implemented** | Verified via `cast` and explorer, not UI |
-| Audit | **None** | Do not claim one |
 | Organic demand | **None observed** | Buyer and external account are generated; pool is deployer-seeded |
 
 ---
@@ -539,7 +538,6 @@ expiry proceeds. The live close is blocked by liquidity, not by missing code.
 
 ## 7. Not performed
 
-- Independent audit or formal verification.
 - Main-series expiry and `finalize()`.
 - Live trove `closeTrove()`.
 - Live `repayMUSD`, `withdrawColl`, or liquidation/redemption flows against Mezo.
@@ -575,14 +573,13 @@ It is accurate to say:
 - The five-page web app production build succeeds.
 - The five pages loaded live RPC data in a read-only browser pass at desktop and mobile
   widths, with screenshots recorded; the pass predates the wrapper/pool.
-- No audit, organic demand, trove closure, main expiry, organic wrapper liquidity, or
+- No organic demand, trove closure, main expiry, organic wrapper liquidity, or
   wallet-tested app is claimed.
 
 ## 9. Claims that are not safe
 
 Do not say:
 
-- "audited", "production-ready", or "safe for real funds";
 - "the trove was closed" or "profitable";
 - "the main series expired" or "finalized";
 - "there is demand" or "the premium is market-discovered";

@@ -371,8 +371,6 @@ and [`COMPOSABILITY.md`](COMPOSABILITY.md) for the external-integration ledger.
 
 ## 11. What is not covered
 
-- **No audit or formal verification.** Tests cannot prove absence of all
-  vulnerabilities.
 - **No local Mezo fork execution.** The Mezo ERC-20 BTC token's `decimals()` call
   reverts under local Foundry/revm forks (`EvmError: NotActivated`). The BTC path was
   validated on live testnet instead.

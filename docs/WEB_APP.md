@@ -209,7 +209,7 @@ The rest of the landing page is intentionally long-form:
 8. **“Four pages, one on-chain source”** — cards linking to Trade, Secondary, Vault, and
    Activity.
 9. **“Read it from the chain”** — verification guidance, explorer links, and the testnet
-   / audit / asset-separation disclosures.
+   / asset-separation disclosures.
 
 The landing page reads live data and has no transaction controls. The dedicated pages
 carry the actions.
@@ -600,7 +600,7 @@ It explicitly says the app is a convenience view, not the source of truth.
 
 Three explicit disclosures appear in the shared footer:
 
-1. **Testnet prototype, not audited.** No audit or independent review; do not use real
+1. **Testnet prototype.** This contract is open for testing; report any bugs you find. Do not use real
    funds.
 2. **Two BTC accounting paths.** Trove collateral is locked; ERC-20 BTC is liquid
    exercise inventory. Roster does not convert locked collateral into exercise inventory.

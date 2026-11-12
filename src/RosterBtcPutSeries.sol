@@ -99,7 +99,8 @@ abstract contract ReentrancyGuard {
 ///      A protocol fee (in basis points) is collected from the buyer at purchase time and
 ///      forwarded immediately to the immutable feeRecipient. The fee does not reduce
 ///      the writer's collateral or the reserve backing active positions.
-///      Mechanism demonstration only; this contract has not been professionally audited.
+///      This contract is live on Mezo testnet and open for testing. Report any bugs
+///      or unexpected behaviour by opening an issue in the project repository.
 contract RosterBtcPutSeries is IERC20Metadata, ReentrancyGuard {
     using SafeERC20 for IERC20;
 

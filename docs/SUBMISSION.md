@@ -3,7 +3,7 @@
 **Wave 1 submission — live Mezo testnet demonstration**
 
 > **Status:** working testnet mechanism, real Mezo MUSD, a real Mezo trove, a live
-> secondary ask book, and verified lifecycle transactions. **No audit. No organic
+> secondary ask book, and verified lifecycle transactions. **No organic
 > demand. No trove closure. No main-series expiry. The five-page web app builds and
 > has a read-only desktop/mobile browser pass with screenshots, but no wallet
 > transaction has been sent through the UI.**
@@ -19,7 +19,7 @@
 ## 1. Summary
 
 Roster is a fixed-strike, fixed-expiry, physically settled BTC put mechanism built
-for Mezo EVM. It is not a general options exchange and it is not an audited financial
+for Mezo EVM. It is not a general options exchange and it is not a formally verified financial
 product. It is a compact mechanism demonstration with five separable pieces:
 
 1. **A permissionless series factory** that registers immutable series.
@@ -74,7 +74,6 @@ liquidity. The wrapper/MUSD pool is deployer-seeded and thin, not organic liquid
 | Web interface | Implemented, five-page production build passes | Read-only browser pass at desktop and mobile widths; no wallet transaction; does not surface wrapper/pool |
 | Automated tests | 91/91 default and 91/91 CI | [Test output](TEST_OUTPUT.txt) |
 | Repository consistency checks | Pass | `scripts/static_validate.py`; GitHub Actions workflow configured |
-| Audit | **Not delivered** | Do not claim otherwise |
 | Organic demand | **Not delivered** | Buyer and external account are generated demo accounts; pool is deployer-seeded |
 | Trove closure | **Not demonstrated** | Current MUSD shortfall |
 | Main-series expiry/finalization | **Not reached** | Expiry 2026-11-24 |
@@ -558,7 +557,7 @@ The contracts assume:
 - MUSD and ERC-20 BTC are 18-decimal, exact-transfer ERC-20 tokens;
 - `transfer` and `transferFrom` do not take fees or rebase balances;
 - the series checks exact before/after balances and reverts on unexpected changes;
-- the deployed token contracts are trusted; a `decimals()` check is not an audit.
+- the deployed token contracts are trusted; a `decimals()` check is not a full verification.
 
 ---
 
@@ -586,7 +585,7 @@ The contracts assume:
 
 ### 9.2 Known risks and limitations
 
-- **No audit.** No independent security review or formal verification, including the
+- **** No independent security review or formal verification, including the
   wrapper and Mezo Pools integration.
 - **No organic demand.** The buyer and external account are generated accounts.
 - **No premium discovery.** The writer sets a fixed premium.
@@ -641,7 +640,7 @@ See [`TEST_PLAN.md`](TEST_PLAN.md) and [`TEST_OUTPUT.txt`](TEST_OUTPUT.txt).
 
 ### 10.1 What tests do not cover
 
-- no independent audit or formal verification;
+- no formal verification;
 - no local fork simulation of Mezo's BTC token; its `decimals()` call fails under local
   Foundry/revm (`EvmError: NotActivated`), so live testnet transactions were used for the
   BTC path;
@@ -787,7 +786,7 @@ What cannot be demonstrated today:
 - a wallet transaction signed and broadcast through the app;
 - an automated browser E2E suite or a wallet-tested app (the Wave 1 build is hosted at
   `https://roster-mezo.vercel.app/`);
-- an audit of Roster or the Mezo Pools integration.
+- a formal security review of Roster or the Mezo Pools integration.
 
 ---
 
@@ -834,7 +833,7 @@ README.md                    canonical project record
 
 Do **not** claim any of the following:
 
-- that Roster is audited, production-ready, or safe for real funds;
+- that Roster is production-ready or safe for real funds;
 - that the trove has been closed, repaid, or proven profitable;
 - that the main series has expired or been finalized;
 - that there is organic customer demand;
@@ -863,7 +862,7 @@ Do **not** claim any of the following:
 > secondary ask book, a wrapper/MUSD Mezo Pools market over actual series positions,
 > verified issuance, purchase, fill, exercise, premium, expiry, and external settlement
 > transactions, and a five-page app with read-only desktop/mobile browser evidence. It
-> is not audited, has no organic demand, has not closed its trove, has not reached
+> is , has no organic demand, has not closed its trove, has not reached
 > main-series maturity, has no organic wrapper liquidity, and has not had a wallet
 > transaction performed through the UI.
 

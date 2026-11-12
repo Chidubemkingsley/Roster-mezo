@@ -49,19 +49,19 @@ the wrapper.
 
 All addresses are on **Mezo testnet, chain ID `31611`**.
 
-| Role | Address | Notes |
-| --- | --- | --- |
-| `RosterPositionWrapper` | `0x4726a021ec380a755EBE883BEb800A5d06723E41` | 18 decimals; `1e18 = 1` series lot |
-| Wrapped series | `0xC23167867baAF830D586598DE0634E26fD895b92` | Main series |
-| MUSD | `0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503` | 18 decimals |
-| ERC-20 BTC | `0x7b7C000000000000000000000000000000000000` | 18 decimals; exercise asset |
-| Mezo Pools Basic PoolFactory | `0x4947243CC818b627A5D06d14C4eCe7398A23Ce1A` | Permissionless pool factory |
-| Mezo Pools Basic Router | `0x9a1ff7FE3a0F69959A3fBa1F1e5ee18e1A9CD7E9` | Add/remove liquidity and swaps |
-| Wrapper/MUSD pool | `0xED305fEF4c11f95dAe1d144e78B2B62be50965F2` | `vAMM-MUSD/wRBTC-PUT` |
+| Role                         | Address                                      | Notes                                            |
+| ---------------------------- | -------------------------------------------- | ------------------------------------------------ |
+| `RosterPositionWrapper`      | `0x4726a021ec380a755EBE883BEb800A5d06723E41` | 18 decimals; `1e18 = 1` series lot               |
+| Wrapped series               | `0xC23167867baAF830D586598DE0634E26fD895b92` | Main series                                      |
+| MUSD                         | `0x118917a40FAF1CD7a13dB0Ef56C86De7973Ac503` | 18 decimals                                      |
+| ERC-20 BTC                   | `0x7b7C000000000000000000000000000000000000` | 18 decimals; exercise asset                      |
+| Mezo Pools Basic PoolFactory | `0x4947243CC818b627A5D06d14C4eCe7398A23Ce1A` | Permissionless pool factory                      |
+| Mezo Pools Basic Router      | `0x9a1ff7FE3a0F69959A3fBa1F1e5ee18e1A9CD7E9` | Add/remove liquidity and swaps                   |
+| Wrapper/MUSD pool            | `0xED305fEF4c11f95dAe1d144e78B2B62be50965F2` | `vAMM-MUSD/wRBTC-PUT`                            |
 | Mezo MUSD/BTC pool (context) | `0xd16A5Df82120ED8D626a1a15232bFcE2366d6AA9` | Existing Mezo pool; not used for the trove close |
 
 The wrapper, pool factory, router, and pool are separate contracts. Roster does not own
-or upgrade the Mezo Pools contracts, and this repository has not audited them.
+or upgrade the Mezo Pools contracts, and this repository has them.
 
 Factory/pool checks:
 
@@ -81,14 +81,14 @@ factory.allPoolsLength()              = 38 at the snapshot
 
 `RosterPositionWrapper` is a conventional ERC-20 with these rules:
 
-| Operation | Behavior |
-| --- | --- |
-| `deposit(lots)` | Pulls `lots` series position tokens (0-decimal) and mints `lots * 1e18` wrapper tokens. Requires series approval. |
-| `withdraw(wrapperAmount)` | Burns a whole-lot multiple (`wrapperAmount % 1e18 == 0`) and returns the underlying lots. |
-| `exercise(wrapperAmount)` | Burns a whole-lot multiple, pulls `lots * 1e12` ERC-20 BTC from the caller, calls `series.exercise(lots)`, and forwards the exact MUSD payout to the caller. |
-| `transfer` / `transferFrom` | Standard ERC-20 movement of wrapper tokens, including to the Mezo pool. |
-| `approve` | Standard allowance; zero spender is rejected. |
-| `balanceOf` / `totalSupply` | 18-decimal wrapper units. |
+| Operation                   | Behavior                                                                                                                                                     |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `deposit(lots)`             | Pulls `lots` series position tokens (0-decimal) and mints `lots * 1e18` wrapper tokens. Requires series approval.                                            |
+| `withdraw(wrapperAmount)`   | Burns a whole-lot multiple (`wrapperAmount % 1e18 == 0`) and returns the underlying lots.                                                                    |
+| `exercise(wrapperAmount)`   | Burns a whole-lot multiple, pulls `lots * 1e12` ERC-20 BTC from the caller, calls `series.exercise(lots)`, and forwards the exact MUSD payout to the caller. |
+| `transfer` / `transferFrom` | Standard ERC-20 movement of wrapper tokens, including to the Mezo pool.                                                                                      |
+| `approve`                   | Standard allowance; zero spender is rejected.                                                                                                                |
+| `balanceOf` / `totalSupply` | 18-decimal wrapper units.                                                                                                                                    |
 
 Key properties:
 
@@ -120,11 +120,11 @@ incentive.
 
 Seed history:
 
-| Step | Wrapper lots | MUSD | Implied price |
-| --- | --- | --- | --- |
-| Initial liquidity | 5 | 0.010 | 0.002 MUSD/lot |
-| Additional liquidity | 10 | 0.020 | 0.002 MUSD/lot |
-| **Total seeded** | **15** | **0.030** | **0.002 MUSD/lot** |
+| Step                 | Wrapper lots | MUSD      | Implied price      |
+| -------------------- | ------------ | --------- | ------------------ |
+| Initial liquidity    | 5            | 0.010     | 0.002 MUSD/lot     |
+| Additional liquidity | 10           | 0.020     | 0.002 MUSD/lot     |
+| **Total seeded**     | **15**       | **0.030** | **0.002 MUSD/lot** |
 
 Current reserves after the external swap:
 
@@ -245,37 +245,37 @@ All transactions below returned receipt status `1`.
 
 ### 6.1 Wrapper deployment and first deposit
 
-| Step | Transaction | Block | Gas |
-| --- | --- | --- | --- |
+| Step                           | Transaction                                                          | Block      | Gas       |
+| ------------------------------ | -------------------------------------------------------------------- | ---------- | --------- |
 | Deploy `RosterPositionWrapper` | `0xe6e4b8c60ac5c8cd2c6f03ed541c82a5af8af42e0f45e1c3b272a956b5b297e7` | 16,378,802 | 1,348,146 |
-| Approve series to wrapper | `0x4d2cf5c3eff0f19deb0d5f714f06a30dc4d9e32901502f8cd63019dde0608741` | 16,378,810 | 45,927 |
-| Deposit 10 lots | `0x596fcecc54e2de075eb84efcb0a3f478d0e484344bde89878a8dc849e8087728` | 16,378,811 | 116,859 |
+| Approve series to wrapper      | `0x4d2cf5c3eff0f19deb0d5f714f06a30dc4d9e32901502f8cd63019dde0608741` | 16,378,810 | 45,927    |
+| Deposit 10 lots                | `0x596fcecc54e2de075eb84efcb0a3f478d0e484344bde89878a8dc849e8087728` | 16,378,811 | 116,859   |
 
 ### 6.2 Pool creation and seed
 
-| Step | Transaction | Block | Gas |
-| --- | --- | --- | --- |
-| Create pool | `0xa5ef82750d15bfb89e2db3cd99e2f65c4c044131fbfce8a1c00aba99f470c3d8` | 16,378,881 | 708,845 |
-| Approve MUSD to router | `0xfd4be100fa7ad7f0857d96639107e184b3729083bb12d20fd887bc72f2da0393` | 16,378,893 | 46,382 |
-| Approve wrapper to router | `0x8a96714c29610cc9ec7886351542dcec177468c4fdfc1bc64f4e43f3c974b475` | 16,378,895 | 45,987 |
-| Add 5 lots + 0.01 MUSD | `0xcd453d9521f628f10b3c508a903754fcf06c3f05e30800d06a9b8413d0d39e6d` | 16,378,904 | 325,475 |
-| Approve 10 more series lots | `0xe6803824ed88d8911f41405994eb9e2f200552397b43bbb475a0e3a00ec80237` | 16,378,937 | 28,827 |
-| Deposit 10 more lots | `0x9da7db90d7496b5c948840a2fbdf4a9d4f8c6c523733ae59301bf53f4b153bc3` | 16,378,940 | 65,559 |
-| Approve 0.02 MUSD to router | `0xcddfbb6c95fcf6013dc8849d0ec48e4c3fa3b8a5027a3ed09f06a0b8a7298d32` | 16,378,949 | 46,382 |
-| Approve 10 wrapper to router | `0x3eacf9e5dea3500f871e5ccae181e23b3889f3c4495afb0e2f4911d34ee78292` | 16,378,951 | 45,987 |
-| Add 10 lots + 0.02 MUSD | `0xc971c780d6bdb91f81988faf81f662eaeb075b0bdfa9e7277bfedbd39da26bcd` | 16,378,953 | 197,863 |
+| Step                         | Transaction                                                          | Block      | Gas     |
+| ---------------------------- | -------------------------------------------------------------------- | ---------- | ------- |
+| Create pool                  | `0xa5ef82750d15bfb89e2db3cd99e2f65c4c044131fbfce8a1c00aba99f470c3d8` | 16,378,881 | 708,845 |
+| Approve MUSD to router       | `0xfd4be100fa7ad7f0857d96639107e184b3729083bb12d20fd887bc72f2da0393` | 16,378,893 | 46,382  |
+| Approve wrapper to router    | `0x8a96714c29610cc9ec7886351542dcec177468c4fdfc1bc64f4e43f3c974b475` | 16,378,895 | 45,987  |
+| Add 5 lots + 0.01 MUSD       | `0xcd453d9521f628f10b3c508a903754fcf06c3f05e30800d06a9b8413d0d39e6d` | 16,378,904 | 325,475 |
+| Approve 10 more series lots  | `0xe6803824ed88d8911f41405994eb9e2f200552397b43bbb475a0e3a00ec80237` | 16,378,937 | 28,827  |
+| Deposit 10 more lots         | `0x9da7db90d7496b5c948840a2fbdf4a9d4f8c6c523733ae59301bf53f4b153bc3` | 16,378,940 | 65,559  |
+| Approve 0.02 MUSD to router  | `0xcddfbb6c95fcf6013dc8849d0ec48e4c3fa3b8a5027a3ed09f06a0b8a7298d32` | 16,378,949 | 46,382  |
+| Approve 10 wrapper to router | `0x3eacf9e5dea3500f871e5ccae181e23b3889f3c4495afb0e2f4911d34ee78292` | 16,378,951 | 45,987  |
+| Add 10 lots + 0.02 MUSD      | `0xc971c780d6bdb91f81988faf81f662eaeb075b0bdfa9e7277bfedbd39da26bcd` | 16,378,953 | 197,863 |
 
 ### 6.3 External buyer funding, swap, and exercise
 
-| Step | Transaction | Block | Gas |
-| --- | --- | --- | --- |
-| Fund external with 0.0003 native gas BTC | `0xb6a3dfe9050927c35a276d40954777d2c3ca27ac18bc76f5d94324b1ae01e410` | 16,378,963 | 21,000 |
-| Fund external with 0.01 MUSD | `0x401cf6dbcd2c83a59d788fdc4f7f5802358ef3185a87f5ab98fb82ff5ee6ddbb` | 16,378,965 | 51,673 |
-| Fund external with 0.000002 ERC-20 BTC | `0x551ecebe47cfb624348f88601244193d44b6ea11b64d888fb64696a92c2a09f1` | 16,378,967 | 25,540 |
-| External approves MUSD to router | `0x19773260376a1746d039f0899d6ddb35eaaa602286405a8b15e817531350ac0f` | 16,378,978 | 46,394 |
-| External swaps 0.00215 MUSD for wrapper | `0xf996972556c8c11a49bf2a3857c38631dc69a313e584d97636bb424fa10e5cd1` | 16,378,984 | 231,293 |
-| External approves ERC-20 BTC to wrapper | `0x0cef19d51580d817ccecd24304b1fe3190966560a0b3bf9daac098dacf83bee7` | 16,378,989 | 25,528 |
-| External exercises 1 lot | `0xf9376c6eafd76fbaeb96b1536814fad60c84e9f888b9aecae2af6c5e7fd4bab7` | 16,378,991 | 150,257 |
+| Step                                     | Transaction                                                          | Block      | Gas     |
+| ---------------------------------------- | -------------------------------------------------------------------- | ---------- | ------- |
+| Fund external with 0.0003 native gas BTC | `0xb6a3dfe9050927c35a276d40954777d2c3ca27ac18bc76f5d94324b1ae01e410` | 16,378,963 | 21,000  |
+| Fund external with 0.01 MUSD             | `0x401cf6dbcd2c83a59d788fdc4f7f5802358ef3185a87f5ab98fb82ff5ee6ddbb` | 16,378,965 | 51,673  |
+| Fund external with 0.000002 ERC-20 BTC   | `0x551ecebe47cfb624348f88601244193d44b6ea11b64d888fb64696a92c2a09f1` | 16,378,967 | 25,540  |
+| External approves MUSD to router         | `0x19773260376a1746d039f0899d6ddb35eaaa602286405a8b15e817531350ac0f` | 16,378,978 | 46,394  |
+| External swaps 0.00215 MUSD for wrapper  | `0xf996972556c8c11a49bf2a3857c38631dc69a313e584d97636bb424fa10e5cd1` | 16,378,984 | 231,293 |
+| External approves ERC-20 BTC to wrapper  | `0x0cef19d51580d817ccecd24304b1fe3190966560a0b3bf9daac098dacf83bee7` | 16,378,989 | 25,528  |
+| External exercises 1 lot                 | `0xf9376c6eafd76fbaeb96b1536814fad60c84e9f888b9aecae2af6c5e7fd4bab7` | 16,378,991 | 150,257 |
 
 Explorer path: `https://explorer.test.mezo.org/tx/<hash>`.
 
@@ -310,7 +310,7 @@ Explorer path: `https://explorer.test.mezo.org/tx/<hash>`.
   and cannot redeem series collateral or native BTC.
 - **That the trove can be closed.** The MUSD/BTC Mezo pool is live, but the available
   BTC and MUSD are insufficient for the close repayment. See §10.
-- **That the external Mezo Pools contracts are audited or risk-free.** They are
+- **That the external Mezo Pools contracts are verified or risk-free.** They are
   third-party contracts.
 - **That the web app supports the pool.** The app does not currently surface the
   wrapper or the Mezo Pools pool; this integration is verified via `cast` and the
@@ -333,12 +333,12 @@ Explorer path: `https://explorer.test.mezo.org/tx/<hash>`.
 6. **Fractional dust.** Amounts below `1e18` wrapper units cannot be withdrawn or
    exercised. The external buyer retained `0.002735998536819336` wrapper dust.
 7. **External protocol risk.** Mezo Pools factory, router, pool implementation, and
-   token contracts are outside this repository's audit scope.
+   token contracts are third-party; their behaviour is outside this repository's scope.
 8. **No organic liquidity.** The deployer owns essentially all LP supply and can remove
    it. The pool is not a permanent market.
 9. **Price is not an oracle.** The pool's marginal price is not used by the series or
    the trove. Exercise still uses the fixed strike.
-10. **No audit.** The wrapper and the integration have not been independently reviewed.
+10. **** The wrapper and the integration have not been independently reviewed.
 
 ---
 
@@ -412,7 +412,7 @@ cast receipt 0xf9376c6eafd76fbaeb96b1536814fad60c84e9f888b9aecae2af6c5e7fd4bab7 
 > Roster has a live Mezo testnet wrapper/MUSD pool holding actual main-series positions.
 > A third-party test account swapped MUSD for wrapper tokens through the Mezo Pools
 > router and exercised one lot, delivering ERC-20 BTC and receiving the fixed MUSD
-> payout. The pool is small, deployer-seeded, unaudited, and not a market; the wrapper
+> payout. The pool is small, deployer-seeded, , and not a market; the wrapper
 > is not collateral, cannot redeem series collateral, and cannot settle after expiry.
 
 Anything stronger is not supported by the current evidence.

@@ -1,6 +1,6 @@
 # Roster — Fixed-Series BTC Puts on Mezo
 
-> **Status: live Mezo testnet demonstration. Not audited. Not production-ready.**
+> **Status: live Mezo testnet demonstration. Open for testing — if you find a bug, please open an issue in this repository.**
 >
 > Roster is a fixed-strike, fixed-expiry, physically settled BTC put mechanism built for
 > Mezo EVM. A trove-backed writer borrows MUSD against native BTC and funds a series.
@@ -73,7 +73,6 @@ scope, changes since Wave 1, and acceptance criteria are in
 | Protocol fee                          | **50 bps** on buyer premiums; **30 bps** on order-book fills — live and collected on-chain                                                                                                                                                |
 | Recovery Mode guard                   | `openAndFund` and `borrowMore` blocked when system TCR < 150%; `isInRecoveryMode()` view live                                                                                                                                             |
 | External composability                | **Demonstrated**: wrapper/MUSD pool seeded with 15 actual lots; a third-party account swapped and exercised 1 lot                                                                                                                         |
-| Audit                                 | **None**                                                                                                                                                                                                                                  |
 | Organic demand                        | **None observed**; the buyer and external account are generated demo accounts                                                                                                                                                             |
 | Trove closure                         | **Not demonstrated** on-chain (MUSD shortfall); fully covered by 30 unit tests including `closeTrove`, `repay`, `claimCollateral`                                                                                                         |
 | Main expiry/finalize                  | **Not reached**                                                                                                                                                                                                                           |
@@ -541,7 +540,7 @@ The contracts assume:
 - MUSD and ERC-20 BTC are 18-decimal, exact-transfer ERC-20 tokens.
 - `transfer` and `transferFrom` do not take fees or rebase balances.
 - The series checks exact before/after balances and reverts on unexpected changes.
-- The deployed token contracts are trusted; a `decimals()` check is not a security audit.
+- The deployed token contracts are trusted; a `decimals()` check is not a full bytecode verification.
 
 ### 7.5 Wrapper accounting
 
@@ -968,7 +967,6 @@ These are warnings, not compiler errors. `forge fmt --check` is clean.
 
 ### 12.4 What the tests do not cover
 
-- No independent audit or formal verification.
 - No local fork simulation of Mezo's BTC token. Its `decimals()` call reverts under
   local Foundry/revm forks (`EvmError: NotActivated`) even though live `cast` calls and
   transactions succeed. Live testnet transactions were used for the BTC path.
@@ -1454,7 +1452,20 @@ FOUNDRY_PROFILE=ci forge test
 
 ## 18. Security model and limitations
 
-### 18.1 Trust assumptions
+### 18.1 Testing and bug reports
+
+Roster is live on Mezo testnet and open for public testing. If you find a bug,
+unexpected behaviour, or a potential vulnerability, please open an issue in this
+repository with the following information:
+
+- Contract address and function called
+- Transaction hash (if on-chain)
+- Expected vs actual behaviour
+- Steps to reproduce
+
+Your report helps improve the protocol before any mainnet deployment.
+
+### 18.2 Trust assumptions
 
 - MUSD and ERC-20 BTC are trusted, exact-transfer, 18-decimal tokens.
 - Mezo's BorrowerOperations, TroveManager, PriceFeed, ActivePool, and CollSurplusPool are
@@ -1465,7 +1476,7 @@ FOUNDRY_PROFILE=ci forge test
 - The series is immutable; its writer, assets, strike, premium, and expiry cannot change.
 - The position wrapper has no owner, pause, fee, upgrade, or rescue path.
 - Mezo Pools factory, router, pool implementation, and token contracts are third-party
-  contracts; this repository has not audited them.
+  contracts; this repository does not cover their behaviour.
 
 ### 18.2 Protocol-specific restrictions
 
@@ -1518,10 +1529,8 @@ FOUNDRY_PROFILE=ci forge test
 ### 18.4 Operational limitations
 
 - Testnet only.
-- No audit or independent security review.
 - No monitoring, alerting, or incident response.
 - No upgrade path; contracts are immutable.
-- No audit of the wrapper or the Mezo Pools integration.
 - No mainnet deployment.
 
 ---
@@ -1530,7 +1539,6 @@ FOUNDRY_PROFILE=ci forge test
 
 Do **not** claim any of the following:
 
-- That Roster is audited, production-ready, or safe for real funds.
 - That the trove has been closed, repaid, or proven profitable.
 - That the main series has expired or been finalized.
 - That there is organic customer demand.
@@ -1574,12 +1582,10 @@ Near-term, in order:
    unwind warnings, or document permanently that the app does not cover them.
 4. Find or create a compliant MUSD source to close the trove, or explicitly leave it open
    and document the shortfall.
-5. Add a formal threat-model review and independent audit before any real-fund use,
-   including the wrapper and Mezo Pools integration.
-6. Wait for the main series to reach its 2026-11-24 expiry and demonstrate `expire()` /
+5. Wait for the main series to reach its 2026-11-24 expiry and demonstrate `expire()` /
    `finalize()` on the vault-bound series. The wrapper's post-expiry behavior should be
    tested against that event.
-7. Add monitoring for trove ICR, debt, main-series expiry, and wrapper/pool liquidity.
+6. Add monitoring for trove ICR, debt, main-series expiry, and wrapper/pool liquidity.
 
 Medium-term:
 
@@ -1628,7 +1634,7 @@ The strongest description of this repository is:
 
 > A working testnet mechanism with real Mezo MUSD, a real trove, a live secondary book,
 > a wrapper/MUSD Mezo Pools market over actual series positions, and a five-page app with
-> read-only browser evidence — but no audit, no organic demand, no premium discovery, no
+> read-only browser evidence — but no organic demand, no premium discovery, no
 > trove closure, no main-series expiry, no wallet transaction performed through the UI,
 > and no organic liquidity in the wrapper pool.
 

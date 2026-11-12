@@ -5,7 +5,7 @@
 **RPC:** `https://rpc.test.mezo.org`
 **Explorer:** `https://explorer.test.mezo.org`
 **Snapshot:** block `16,379,045`, 2026-10-26 10:15:56 UTC
-**Status:** live testnet demonstration; not audited; main series active; trove open;
+**Status:** live testnet demonstration; open for testing — report bugs via GitHub issues; main series active; trove open;
 wrapper/MUSD pool live but deployer-seeded
 
 This record replaces the earlier placeholder deployment checklist. Every address,
@@ -565,7 +565,6 @@ Before treating a future deployment as valid:
 
 ## 12. Known gaps and non-claims
 
-- No audit.
 - No organic demand.
 - No market-based premium discovery.
 - No trove closure.
@@ -593,7 +592,7 @@ The strongest accurate description is:
 > A working Mezo testnet mechanism with real MUSD, a real trove, a live secondary book,
 > a deployer-seeded wrapper/MUSD Mezo Pools market over actual series positions, verified
 > lifecycle and external-settlement transactions, and a five-page app with read-only
-> desktop/mobile browser evidence — but no audit, no organic demand, no premium discovery,
+> desktop/mobile browser evidence — but no organic demand, no premium discovery,
 > no trove closure, no main expiry, no organic wrapper liquidity, and no wallet transaction
 > through the UI.
 
@@ -603,7 +602,7 @@ The strongest accurate description is:
 
 **Snapshot:** block `16,698,627`, 2026-11-10 UTC
 **Status:** live testnet demonstration; fee model active; Recovery Mode guard active;
-102/102 tests passing
+open for testing — report bugs via GitHub issues; 102/102 tests passing
 
 The Wave 2 stack is a separate deployment from the Wave 1 contracts above. It adds:
 

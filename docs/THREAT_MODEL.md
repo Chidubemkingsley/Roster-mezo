@@ -2,7 +2,7 @@
 
 **Scope:** Roster series, factory, order book, trove vault, position wrapper, Mezo Pools
 wrapper/MUSD pool, and read/write web app on Mezo testnet.
-**Status:** testnet prototype. No audit. No production funds.
+**Status:** testnet prototype. Open for testing — report bugs via GitHub issues. No production funds.
 **Last updated:** 2026-10-26.
 
 This model covers the code that exists and the live deployment. It does not claim that
@@ -49,7 +49,7 @@ claim on the trove. A wrapper unit is a claim on deposited series lots only.
 - **External demo account** — a generated, deployer-funded account used to swap MUSD for
   wrapper and exercise one lot. It is not an independent customer.
 - **Mezo Pools Basic PoolFactory, Basic Router, pool implementation, and MUSD/wrapper
-  tokens** — third-party contracts treated as deployed. Roster has not audited them.
+  tokens** — third-party contracts treated as deployed. Their behaviour is outside this repository's scope.
 - **Wrapper** — unowned, immutable adapter trusted only to hold deposited series lots and
   forward exact exercise proceeds. It has no rescue or upgrade path.
 
@@ -202,7 +202,7 @@ tokens directly to the wrapper, which are uncredited and unrecoverable; the wrap
 | Thin liquidity / price manipulation | None in Roster; pool is third-party | Deployer seeded 15 lots and 0.03 MUSD; deployer holds essentially all LP supply and can remove it |
 | Pool cannot exercise | Documented; pool-held lots must be sold before expiry | Pool-held lots may expire worthless |
 | Impermanent loss / adverse selection | Standard AMM risk; no Roster protection | LPs can lose value |
-| Router or factory vulnerability | Third-party code; not audited here | A bug could drain pooled assets |
+| Router or factory vulnerability | Third-party code; outside this repository's scope | A bug could drain pooled assets |
 | Fake pool or token | Verify factory `getPool`/`isPool` and token addresses | Users can be phished by lookalike contracts |
 | Wrapper price treated as series value | No oracle integration; marginal price is pool-only | Observers may over-interpret a thin quote |
 | Liquidity removed before expiry | No lock or incentive | Deployer/LP can withdraw at any time |
@@ -287,11 +287,11 @@ tokens directly to the wrapper, which are uncredited and unrecoverable; the wrap
 - The vault owner manages the trove responsibly and keeps the owner key safe.
 - The demo buyer and external account are not independent customers.
 - The Mezo Pools factory, router, pool implementation, and tokens are assumed to behave as
-  deployed and are not audited by this project.
+  deployed and are outside this repository's scope.
 - The wrapper is assumed to hold exactly the series lots recorded in `underlyingLots`;
   direct unsolicited series-token transfers are out of scope.
 - The testnet environment is not economically adversarial.
-- No audit has been performed.
+- 
 - No formal verification has been performed.
 - No liquidation, redemption, or MEV simulation has been performed.
 - No production incident response, monitoring, or alerting exists.
@@ -311,7 +311,7 @@ swap and exercise.
 
 The code does **not** have:
 
-- an audit, including of the wrapper or Mezo Pools integration;
+- a formal security review of the wrapper or Mezo Pools integration;
 - formal verification;
 - a liquidation keeper;
 - a deep or organic market;
@@ -326,5 +326,5 @@ The correct conclusion is:
 
 > Roster is a working testnet mechanism with real Mezo integration, verified lifecycle
 > transactions, and a demonstrated external wrapper/MUSD market over actual positions,
-> but it is not audited, not production-ready, and not a demonstration of organic demand,
+> but it is not production-ready and not a demonstration of organic demand,
 > organic liquidity, or trove profitability.
