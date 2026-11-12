@@ -1,0 +1,884 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.24;
+
+// src/RosterBtcPutSeries.sol
+
+interface IERC20 {
+    event Transfer(address indexed from, address indexed to, uint256 value);
+    event Approval(
+        address indexed owner,
+        address indexed spender,
+        uint256 value
+    );
+    function totalSupply() external view returns (uint256);
+    function balanceOf(address account) external view returns (uint256);
+    function transfer(address to, uint256 value) external returns (bool);
+    function allowance(
+        address owner,
+        address spender
+    ) external view returns (uint256);
+    function approve(address spender, uint256 value) external returns (bool);
+    function transferFrom(
+        address from,
+        address to,
+        uint256 value
+    ) external returns (bool);
+}
+
+interface IERC20Metadata is IERC20 {
+    function name() external view returns (string memory);
+    function symbol() external view returns (string memory);
+    function decimals() external view returns (uint8);
+}
+
+library SafeERC20 {
+    error SafeERC20FailedOperation(address token);
+
+    function safeTransfer(IERC20 token, address to, uint256 value) internal {
+        _callOptionalReturn(
+            token,
+            abi.encodeCall(IERC20.transfer, (to, value))
+        );
+    }
+
+    function safeTransferFrom(
+        IERC20 token,
+        address from,
+        address to,
+        uint256 value
+    ) internal {
+        _callOptionalReturn(
+            token,
+            abi.encodeCall(IERC20.transferFrom, (from, to, value))
+        );
+    }
+
+    function safeApprove(
+        IERC20 token,
+        address spender,
+        uint256 value
+    ) internal {
+        _callOptionalReturn(
+            token,
+            abi.encodeCall(IERC20.approve, (spender, value))
+        );
+    }
+
+    function _callOptionalReturn(IERC20 token, bytes memory data) private {
+        (bool success, bytes memory returndata) = address(token).call(data);
+        if (!success) {
+            if (returndata.length != 0) {
+                assembly {
+                    revert(add(returndata, 32), mload(returndata))
+                }
+            }
+            revert SafeERC20FailedOperation(address(token));
+        }
+        if (
+            returndata.length != 0 &&
+            (returndata.length < 32 || !abi.decode(returndata, (bool)))
+        ) {
+            revert SafeERC20FailedOperation(address(token));
+        }
+    }
+}
+
+abstract contract ReentrancyGuard {
+    error ReentrancyGuardReentrantCall();
+    uint256 private _status = 1;
+
+    modifier nonReentrant() {
+        if (_status == 2) revert ReentrancyGuardReentrantCall();
+        _status = 2;
+        _;
+        _status = 1;
+    }
+}
+
+/// @title Roster Mezo BTC Put Series (Wave 2)
+/// @notice Fixed-series, physically settled, MUSD-collateralized put on Mezo BTC.
+/// @dev One token = one 1e-6 BTC lot. The ERC-20 position ledger is internal to this contract.
+///      A protocol fee (in basis points) is collected from the buyer at purchase time and
+///      forwarded immediately to the immutable feeRecipient. The fee does not reduce
+///      the writer's collateral or the reserve backing active positions.
+///      Mechanism demonstration only; this contract has not been professionally audited.
+contract RosterBtcPutSeries is IERC20Metadata, ReentrancyGuard {
+    using SafeERC20 for IERC20;
+
+    error ZeroAddress();
+    error IdenticalTokenAddresses();
+    error InvalidTokenDecimals(address token, uint8 actualDecimals);
+    error InvalidExpiry();
+    error InvalidStrike();
+    error InvalidPremium();
+    error InvalidFeeBps();
+    error OnlyWriter();
+    error WriterCannotPurchase();
+    error WriterCannotExercise();
+    error SeriesMatured();
+    error NotMatured();
+    error InvalidQuantity();
+    error InsufficientExcess();
+    error InsufficientPositionTokens();
+    error InsufficientBtcBalance();
+    error InsufficientBtcAllowance();
+    error InsufficientAllowance();
+    error InsufficientBalance();
+    error InvalidRecipient();
+    error InvalidSender();
+    error NoPremiumToWithdraw();
+    error AmountOverflow();
+    error UnexpectedTokenAmount(address token);
+
+    address public immutable writer;
+    IERC20Metadata public immutable musd;
+    IERC20Metadata public immutable btc;
+    uint256 public immutable K_raw;
+    uint256 public immutable strike_per_lot_raw;
+    uint256 public immutable premium_per_lot_raw;
+    uint256 public immutable expiry;
+    uint256 public constant LOT_SIZE_RAW = 1e12; // 1e-6 BTC, assuming 18 decimals
+    uint256 public constant MAX_FEE_BPS = 500; // 5% hard cap
+
+    /// @notice Protocol fee in basis points charged on buyer premium at purchase.
+    uint256 public immutable feeBps;
+    /// @notice Recipient of the protocol fee; set once at deployment.
+    address public immutable feeRecipient;
+    /// @notice Cumulative protocol fees collected across all purchases.
+    uint256 public total_fees_collected_raw;
+
+    string private _seriesName;
+    string private _seriesSymbol;
+
+    uint256 public total_deposited_raw;
+    uint256 public total_payouts_raw;
+    uint256 public expiry_release_raw;
+    uint256 public collateral_balance_raw;
+    uint256 public reserved_raw;
+    uint256 public excess_raw;
+    uint256 public premium_balance_raw;
+    uint256 public active_lots;
+    uint256 private _totalSupply;
+    bool public expired;
+
+    mapping(address account => uint256 amount) private _balances;
+    mapping(address account => mapping(address spender => uint256 amount))
+        private _allowances;
+
+    event WriterDeposited(address indexed writer, uint256 amount);
+    event Purchased(
+        address indexed buyer,
+        uint256 lots,
+        uint256 premium,
+        uint256 reserve
+    );
+    event Exercised(
+        address indexed holder,
+        uint256 lots,
+        uint256 btcAmount,
+        uint256 musdPayout
+    );
+    event SeriesExpired(address indexed writer, uint256 releasedCollateral);
+    event PremiumWithdrawn(address indexed writer, uint256 amount);
+    event ProtocolFeeCollected(address indexed feeRecipient, uint256 amount);
+
+    constructor(
+        address writer_,
+        address musd_,
+        address btc_,
+        uint256 K_raw_,
+        uint256 premium_per_lot_raw_,
+        uint256 expiry_,
+        string memory name_,
+        string memory symbol_,
+        address feeRecipient_,
+        uint256 feeBps_
+    ) {
+        if (
+            writer_ == address(0) || musd_ == address(0) || btc_ == address(0)
+        ) {
+            revert ZeroAddress();
+        }
+        if (feeRecipient_ == address(0)) revert ZeroAddress();
+        if (musd_ == btc_) revert IdenticalTokenAddresses();
+        if (expiry_ <= block.timestamp) revert InvalidExpiry();
+        if (K_raw_ == 0 || K_raw_ % 1e6 != 0 || K_raw_ / 1e6 == 0)
+            revert InvalidStrike();
+        if (premium_per_lot_raw_ == 0) revert InvalidPremium();
+        if (feeBps_ > MAX_FEE_BPS) revert InvalidFeeBps();
+
+        uint8 musdDecimals = IERC20Metadata(musd_).decimals();
+        if (musdDecimals != 18)
+            revert InvalidTokenDecimals(musd_, musdDecimals);
+        uint8 btcDecimals = IERC20Metadata(btc_).decimals();
+        if (btcDecimals != 18) revert InvalidTokenDecimals(btc_, btcDecimals);
+
+        writer = writer_;
+        musd = IERC20Metadata(musd_);
+        btc = IERC20Metadata(btc_);
+        K_raw = K_raw_;
+        strike_per_lot_raw = K_raw_ / 1e6;
+        premium_per_lot_raw = premium_per_lot_raw_;
+        expiry = expiry_;
+        _seriesName = name_;
+        _seriesSymbol = symbol_;
+        feeRecipient = feeRecipient_;
+        feeBps = feeBps_;
+    }
+
+    // Internal position ledger exposed through the ERC-20 ABI. Protocol-specific restrictions
+    // prohibit transfer to writer, address(this), or the zero address, and freeze transfers at maturity.
+    function name() external view override returns (string memory) {
+        return _seriesName;
+    }
+
+    function symbol() external view override returns (string memory) {
+        return _seriesSymbol;
+    }
+
+    function decimals() external pure override returns (uint8) {
+        return 0;
+    }
+
+    function totalSupply() public view override returns (uint256) {
+        return _totalSupply;
+    }
+
+    function balanceOf(address account) public view override returns (uint256) {
+        return _balances[account];
+    }
+
+    function allowance(
+        address owner,
+        address spender
+    ) public view override returns (uint256) {
+        return _allowances[owner][spender];
+    }
+
+    /// @dev Deliberately unguarded: approval changes allowance only, not position balances.
+    function approve(
+        address spender,
+        uint256 value
+    ) external override returns (bool) {
+        if (spender == address(0)) revert InvalidRecipient();
+        _allowances[msg.sender][spender] = value;
+        emit Approval(msg.sender, spender, value);
+        return true;
+    }
+
+    function transfer(
+        address to,
+        uint256 value
+    ) external override nonReentrant returns (bool) {
+        _checkTransferAllowed(to);
+        _transfer(msg.sender, to, value);
+        return true;
+    }
+
+    function transferFrom(
+        address from,
+        address to,
+        uint256 value
+    ) external override nonReentrant returns (bool) {
+        _checkTransferAllowed(to);
+        uint256 currentAllowance = _allowances[from][msg.sender];
+        if (currentAllowance != type(uint256).max) {
+            if (currentAllowance < value) revert InsufficientAllowance();
+            unchecked {
+                _allowances[from][msg.sender] = currentAllowance - value;
+            }
+            emit Approval(from, msg.sender, _allowances[from][msg.sender]);
+        }
+        _transfer(from, to, value);
+        return true;
+    }
+
+    function _checkTransferAllowed(address to) private view {
+        if (to == address(0) || to == writer || to == address(this))
+            revert InvalidRecipient();
+        if (expired || block.timestamp >= expiry) revert SeriesMatured();
+    }
+
+    function _transfer(address from, address to, uint256 value) private {
+        if (from == address(0)) revert InvalidSender();
+        if (to == address(0)) revert InvalidRecipient();
+        uint256 fromBalance = _balances[from];
+        if (fromBalance < value) revert InsufficientBalance();
+        unchecked {
+            _balances[from] = fromBalance - value;
+            _balances[to] += value;
+        }
+        emit Transfer(from, to, value);
+    }
+
+    function _mint(address to, uint256 value) private {
+        _totalSupply += value;
+        _balances[to] += value;
+        emit Transfer(address(0), to, value);
+    }
+
+    function _burn(address from, uint256 value) private {
+        uint256 balance = _balances[from];
+        if (balance < value) revert InsufficientPositionTokens();
+        unchecked {
+            _balances[from] = balance - value;
+            _totalSupply -= value;
+        }
+        emit Transfer(from, address(0), value);
+    }
+
+    function deposit(uint256 amount) external nonReentrant {
+        if (msg.sender != writer) revert OnlyWriter();
+        _requireLive();
+        if (amount == 0) revert InvalidQuantity();
+        uint256 writerBalanceBefore = musd.balanceOf(msg.sender);
+        uint256 contractBalanceBefore = musd.balanceOf(address(this));
+        total_deposited_raw += amount;
+        collateral_balance_raw += amount;
+        excess_raw += amount;
+        IERC20(address(musd)).safeTransferFrom(
+            msg.sender,
+            address(this),
+            amount
+        );
+        _requireExactDecrease(
+            IERC20(address(musd)),
+            msg.sender,
+            writerBalanceBefore,
+            amount
+        );
+        _requireExactIncrease(
+            IERC20(address(musd)),
+            address(this),
+            contractBalanceBefore,
+            amount
+        );
+        emit WriterDeposited(msg.sender, amount);
+    }
+
+    function purchase(uint256 lots) external nonReentrant {
+        _requireLive();
+        if (msg.sender == writer) revert WriterCannotPurchase();
+        if (lots == 0) revert InvalidQuantity();
+
+        uint256 premium = _checkedMul(lots, premium_per_lot_raw);
+        uint256 reserveNeeded = _checkedMul(lots, strike_per_lot_raw);
+        if (premium == 0) revert InvalidPremium();
+        if (reserveNeeded > excess_raw) revert InsufficientExcess();
+
+        // Protocol fee is calculated on top of the writer premium. The buyer pays
+        // premium + fee; only premium enters the series reserve liability.
+        uint256 feeAmount = feeBps == 0 ? 0 : (premium * feeBps) / 10_000;
+        uint256 totalCharge = premium + feeAmount;
+
+        uint256 buyerMUSDBefore = musd.balanceOf(msg.sender);
+        uint256 contractMUSDBefore = musd.balanceOf(address(this));
+
+        excess_raw -= reserveNeeded;
+        reserved_raw += reserveNeeded;
+        active_lots += lots;
+        premium_balance_raw += premium;
+        _mint(msg.sender, lots);
+
+        // Pull total charge from buyer in one transfer.
+        IERC20(address(musd)).safeTransferFrom(
+            msg.sender,
+            address(this),
+            totalCharge
+        );
+        _requireExactDecrease(
+            IERC20(address(musd)),
+            msg.sender,
+            buyerMUSDBefore,
+            totalCharge
+        );
+        _requireExactIncrease(
+            IERC20(address(musd)),
+            address(this),
+            contractMUSDBefore,
+            totalCharge
+        );
+
+        // Forward the protocol fee immediately so it is never mixed with collateral.
+        if (feeAmount != 0) {
+            uint256 recipientBefore = musd.balanceOf(feeRecipient);
+            IERC20(address(musd)).safeTransfer(feeRecipient, feeAmount);
+            _requireExactIncrease(
+                IERC20(address(musd)),
+                feeRecipient,
+                recipientBefore,
+                feeAmount
+            );
+            total_fees_collected_raw += feeAmount;
+            emit ProtocolFeeCollected(feeRecipient, feeAmount);
+        }
+
+        emit Purchased(msg.sender, lots, premium, reserveNeeded);
+    }
+
+    function exercise(uint256 lots) external nonReentrant {
+        _requireLive();
+        if (msg.sender == writer) revert WriterCannotExercise();
+        if (lots == 0) revert InvalidQuantity();
+        if (lots > active_lots || _balances[msg.sender] < lots)
+            revert InsufficientPositionTokens();
+
+        uint256 btcAmount = _checkedMul(lots, LOT_SIZE_RAW);
+        uint256 payout = _checkedMul(lots, strike_per_lot_raw);
+        uint256 holderBtcBefore = btc.balanceOf(msg.sender);
+        uint256 writerBtcBefore = btc.balanceOf(writer);
+        if (holderBtcBefore < btcAmount) revert InsufficientBtcBalance();
+        if (btc.allowance(msg.sender, address(this)) < btcAmount)
+            revert InsufficientBtcAllowance();
+        uint256 holderMUSDBefore = musd.balanceOf(msg.sender);
+        uint256 contractMUSDBefore = musd.balanceOf(address(this));
+
+        _burn(msg.sender, lots);
+        collateral_balance_raw -= payout;
+        reserved_raw -= payout;
+        active_lots -= lots;
+        total_payouts_raw += payout;
+
+        IERC20(address(btc)).safeTransferFrom(msg.sender, writer, btcAmount);
+        _requireExactDecrease(
+            IERC20(address(btc)),
+            msg.sender,
+            holderBtcBefore,
+            btcAmount
+        );
+        _requireExactIncrease(
+            IERC20(address(btc)),
+            writer,
+            writerBtcBefore,
+            btcAmount
+        );
+        IERC20(address(musd)).safeTransfer(msg.sender, payout);
+        _requireExactDecrease(
+            IERC20(address(musd)),
+            address(this),
+            contractMUSDBefore,
+            payout
+        );
+        _requireExactIncrease(
+            IERC20(address(musd)),
+            msg.sender,
+            holderMUSDBefore,
+            payout
+        );
+        emit Exercised(msg.sender, lots, btcAmount, payout);
+    }
+
+    /// @notice Permissionless lazy finalization after maturity. Repeated calls are no-ops.
+    function expire() external nonReentrant {
+        if (block.timestamp < expiry) revert NotMatured();
+        if (expired) return;
+        expired = true;
+        uint256 releaseAmount = collateral_balance_raw;
+        uint256 contractMUSDBefore = musd.balanceOf(address(this));
+        uint256 writerMUSDBefore = musd.balanceOf(writer);
+        expiry_release_raw = releaseAmount;
+        collateral_balance_raw = 0;
+        reserved_raw = 0;
+        excess_raw = 0;
+        active_lots = 0;
+        // _totalSupply and balances remain unchanged; expired tokens are worthless and frozen.
+        if (releaseAmount != 0) {
+            IERC20(address(musd)).safeTransfer(writer, releaseAmount);
+            _requireExactDecrease(
+                IERC20(address(musd)),
+                address(this),
+                contractMUSDBefore,
+                releaseAmount
+            );
+            _requireExactIncrease(
+                IERC20(address(musd)),
+                writer,
+                writerMUSDBefore,
+                releaseAmount
+            );
+        }
+        emit SeriesExpired(writer, releaseAmount);
+    }
+
+    function withdrawPremium() external nonReentrant {
+        if (msg.sender != writer) revert OnlyWriter();
+        uint256 amount = premium_balance_raw;
+        if (amount == 0) revert NoPremiumToWithdraw();
+        uint256 contractMUSDBefore = musd.balanceOf(address(this));
+        uint256 writerMUSDBefore = musd.balanceOf(writer);
+        premium_balance_raw = 0;
+        IERC20(address(musd)).safeTransfer(writer, amount);
+        _requireExactDecrease(
+            IERC20(address(musd)),
+            address(this),
+            contractMUSDBefore,
+            amount
+        );
+        _requireExactIncrease(
+            IERC20(address(musd)),
+            writer,
+            writerMUSDBefore,
+            amount
+        );
+        emit PremiumWithdrawn(writer, amount);
+    }
+
+    function _requireLive() private view {
+        if (expired || block.timestamp >= expiry) revert SeriesMatured();
+    }
+
+    function _checkedMul(
+        uint256 a,
+        uint256 b
+    ) private pure returns (uint256 c) {
+        if (a != 0 && b > type(uint256).max / a) revert AmountOverflow();
+        c = a * b;
+    }
+
+    function _requireExactIncrease(
+        IERC20 token,
+        address account,
+        uint256 beforeBalance,
+        uint256 amount
+    ) private view {
+        uint256 afterBalance = token.balanceOf(account);
+        if (
+            afterBalance < beforeBalance ||
+            afterBalance - beforeBalance != amount
+        ) {
+            revert UnexpectedTokenAmount(address(token));
+        }
+    }
+
+    function _requireExactDecrease(
+        IERC20 token,
+        address account,
+        uint256 beforeBalance,
+        uint256 amount
+    ) private view {
+        uint256 afterBalance = token.balanceOf(account);
+        if (
+            afterBalance > beforeBalance ||
+            beforeBalance - afterBalance != amount
+        ) {
+            revert UnexpectedTokenAmount(address(token));
+        }
+    }
+}
+
+// src/RosterSeriesFactory.sol
+
+/// @title Roster Series Factory
+/// @notice Permissionless registry for fixed-series BTC puts on Mezo.
+/// @dev The factory fixes the MUSD, BTC, and fee-recipient assets. Writers compete on
+///      strike, premium, expiry, and branding by deploying independent, immutable series.
+///      A factory deployment does not prove that a series is funded or demand exists.
+///      All series created through this factory share the same feeRecipient and feeBps
+///      set at construction. Zero feeBps is valid (fee-free mode for testnet).
+contract RosterSeriesFactory {
+    error ZeroAddress();
+    error IdenticalTokenAddresses();
+    error InvalidFeeBps();
+
+    address public immutable musd;
+    address public immutable btc;
+    /// @notice Protocol fee basis points applied to every series created through this factory.
+    uint256 public immutable feeBps;
+    /// @notice Receives the per-purchase protocol fee from every series created here.
+    address public immutable feeRecipient;
+
+    address[] private _series;
+    mapping(address series => bool known) public isSeries;
+
+    event SeriesCreated(
+        address indexed series,
+        address indexed writer,
+        uint256 strikeRaw,
+        uint256 premiumPerLotRaw,
+        uint256 expiry,
+        string name,
+        string symbol
+    );
+
+    constructor(
+        address musd_,
+        address btc_,
+        address feeRecipient_,
+        uint256 feeBps_
+    ) {
+        if (
+            musd_ == address(0) ||
+            btc_ == address(0) ||
+            feeRecipient_ == address(0)
+        ) revert ZeroAddress();
+        if (musd_ == btc_) revert IdenticalTokenAddresses();
+        if (feeBps_ > 500) revert InvalidFeeBps(); // 5% hard cap, matches RosterBtcPutSeries.MAX_FEE_BPS
+        musd = musd_;
+        btc = btc_;
+        feeRecipient = feeRecipient_;
+        feeBps = feeBps_;
+    }
+
+    /// @notice Deploy a new immutable series. Anyone may create one; the named writer
+    ///         must separately approve and deposit MUSD before buyers can purchase.
+    function createSeries(
+        address writer,
+        uint256 K_raw,
+        uint256 premiumPerLot_raw,
+        uint256 expiry,
+        string calldata name,
+        string calldata symbol
+    ) external returns (RosterBtcPutSeries series) {
+        series = new RosterBtcPutSeries(
+            writer,
+            musd,
+            btc,
+            K_raw,
+            premiumPerLot_raw,
+            expiry,
+            name,
+            symbol,
+            feeRecipient,
+            feeBps
+        );
+        address seriesAddress = address(series);
+        _series.push(seriesAddress);
+        isSeries[seriesAddress] = true;
+        emit SeriesCreated(
+            seriesAddress,
+            writer,
+            K_raw,
+            premiumPerLot_raw,
+            expiry,
+            name,
+            symbol
+        );
+    }
+
+    function seriesCount() external view returns (uint256) {
+        return _series.length;
+    }
+
+    function seriesAt(uint256 index) external view returns (address) {
+        return _series[index];
+    }
+
+    function allSeries() external view returns (address[] memory) {
+        return _series;
+    }
+}
+
+// src/RosterOrderBook.sol
+
+/// @title Roster Secondary Ask Book
+/// @notice Escrowed, partially fillable secondary listings for Roster position tokens.
+/// @dev Sellers escrow position lots; buyers pay MUSD directly to the seller minus a
+///      protocol fill fee (in basis points) that is forwarded to the feeRecipient.
+///      The book supplies a public ask side and therefore observable secondary price
+///      discovery. It is intentionally not a matching engine and has no bids or keepers.
+///      Listings must be cancelled before maturity because the series freezes transfers.
+///
+///      A listing is accepted only if the series is registered by the configured factory
+///      and its MUSD asset matches the book's MUSD. This prevents a buyer from paying in
+///      one MUSD-like token for a position that settles in another.
+///
+///      Fill fee:
+///        buyer pays  = lots × pricePerLot
+///        seller gets = lots × pricePerLot × (10_000 - fillFeeBps) / 10_000
+///        fee gets    = buyer pays - seller gets
+///      The fill fee accrues in this contract and is swept by the feeRecipient.
+contract RosterOrderBook is ReentrancyGuard {
+    using SafeERC20 for IERC20;
+
+    uint256 public constant MAX_FILL_FEE_BPS = 500; // 5% hard cap
+
+    error ZeroAddress();
+    error InvalidFactory();
+    error InvalidSeries();
+    error SeriesNotRegistered();
+    error SeriesMismatchedMUSD();
+    error InvalidQuantity();
+    error InvalidPrice();
+    error SeriesNotLive();
+    error UnknownListing();
+    error ListingNotActive();
+    error NotSeller();
+    error InsufficientListing();
+    error AmountOverflow();
+    error InvalidFeeBps();
+    error NothingToSweep();
+
+    struct Listing {
+        address seller;
+        RosterBtcPutSeries series;
+        uint256 pricePerLot;
+        uint256 remaining;
+        bool active;
+    }
+
+    IERC20 public immutable musd;
+    RosterSeriesFactory public immutable factory;
+    /// @notice Protocol fill fee in basis points, taken from the gross fill amount.
+    uint256 public immutable fillFeeBps;
+    /// @notice Receives accrued fill fees; sweepable by anyone (permissionless flush).
+    address public immutable feeRecipient;
+
+    uint256 public nextListingId = 1;
+    /// @notice Total protocol fees accrued but not yet swept.
+    uint256 public accruedFees;
+
+    mapping(uint256 listingId => Listing listing) public listings;
+
+    event Listed(
+        uint256 indexed listingId,
+        address indexed seller,
+        address indexed series,
+        uint256 lots,
+        uint256 pricePerLot
+    );
+    event Filled(
+        uint256 indexed listingId,
+        address indexed buyer,
+        uint256 lots,
+        uint256 grossPaid,
+        uint256 feeCharged
+    );
+    event Cancelled(uint256 indexed listingId, uint256 lotsReturned);
+    event FeeSwept(address indexed feeRecipient, uint256 amount);
+
+    constructor(
+        address musd_,
+        address factory_,
+        address feeRecipient_,
+        uint256 fillFeeBps_
+    ) {
+        if (
+            musd_ == address(0) ||
+            factory_ == address(0) ||
+            feeRecipient_ == address(0)
+        ) revert ZeroAddress();
+        if (factory_.code.length == 0) revert InvalidFactory();
+        if (RosterSeriesFactory(factory_).musd() != musd_)
+            revert InvalidFactory();
+        if (fillFeeBps_ > MAX_FILL_FEE_BPS) revert InvalidFeeBps();
+        musd = IERC20(musd_);
+        factory = RosterSeriesFactory(factory_);
+        feeRecipient = feeRecipient_;
+        fillFeeBps = fillFeeBps_;
+    }
+
+    /// @notice Escrow position lots and publish an ask. Requires prior series approval.
+    function list(
+        address seriesAddress,
+        uint256 lots,
+        uint256 pricePerLot
+    ) external nonReentrant returns (uint256 listingId) {
+        if (seriesAddress == address(0)) revert ZeroAddress();
+        if (seriesAddress.code.length == 0) revert InvalidSeries();
+        if (lots == 0) revert InvalidQuantity();
+        if (pricePerLot == 0) revert InvalidPrice();
+
+        RosterBtcPutSeries series = RosterBtcPutSeries(seriesAddress);
+
+        // The series must settle in this book's MUSD and be a factory-created series.
+        // Check the asset first so a mismatched series cannot be mistaken for a typo.
+        if (address(series.musd()) != address(musd))
+            revert SeriesMismatchedMUSD();
+        if (!factory.isSeries(seriesAddress)) revert SeriesNotRegistered();
+        if (series.expired() || block.timestamp >= series.expiry())
+            revert SeriesNotLive();
+
+        IERC20(address(series)).safeTransferFrom(
+            msg.sender,
+            address(this),
+            lots
+        );
+
+        listingId = nextListingId++;
+        listings[listingId] = Listing({
+            seller: msg.sender,
+            series: series,
+            pricePerLot: pricePerLot,
+            remaining: lots,
+            active: true
+        });
+
+        emit Listed(listingId, msg.sender, seriesAddress, lots, pricePerLot);
+    }
+
+    /// @notice Buy all or part of a listing at the seller's ask.
+    /// @dev    Buyer pays the gross amount. The fill fee is deducted before forwarding
+    ///         to the seller and held in this contract until swept.
+    function fill(uint256 listingId, uint256 lots) external nonReentrant {
+        if (lots == 0) revert InvalidQuantity();
+        Listing storage listing = listings[listingId];
+        if (listing.seller == address(0)) revert UnknownListing();
+        if (!listing.active) revert ListingNotActive();
+        if (lots > listing.remaining) revert InsufficientListing();
+        if (
+            listing.series.expired() ||
+            block.timestamp >= listing.series.expiry()
+        ) {
+            revert SeriesNotLive();
+        }
+        if (lots > type(uint256).max / listing.pricePerLot)
+            revert AmountOverflow();
+
+        uint256 grossCost = lots * listing.pricePerLot;
+        uint256 feeCharged = fillFeeBps == 0
+            ? 0
+            : (grossCost * fillFeeBps) / 10_000;
+        uint256 sellerProceeds = grossCost - feeCharged;
+
+        listing.remaining -= lots;
+        if (listing.remaining == 0) listing.active = false;
+
+        // Pull gross from buyer.
+        musd.safeTransferFrom(msg.sender, address(this), grossCost);
+        // Forward net to seller immediately.
+        musd.safeTransfer(listing.seller, sellerProceeds);
+        // Accrue fee for later sweep.
+        if (feeCharged != 0) {
+            accruedFees += feeCharged;
+        }
+        IERC20(address(listing.series)).safeTransfer(msg.sender, lots);
+
+        emit Filled(listingId, msg.sender, lots, grossCost, feeCharged);
+    }
+
+    /// @notice Return remaining escrowed lots to the seller. Must be called before maturity.
+    function cancel(uint256 listingId) external nonReentrant {
+        Listing storage listing = listings[listingId];
+        if (listing.seller == address(0)) revert UnknownListing();
+        if (listing.seller != msg.sender) revert NotSeller();
+        if (!listing.active) revert ListingNotActive();
+        if (
+            listing.series.expired() ||
+            block.timestamp >= listing.series.expiry()
+        ) {
+            revert SeriesNotLive();
+        }
+
+        uint256 lotsReturned = listing.remaining;
+        listing.remaining = 0;
+        listing.active = false;
+        IERC20(address(listing.series)).safeTransfer(msg.sender, lotsReturned);
+
+        emit Cancelled(listingId, lotsReturned);
+    }
+
+    /// @notice Permissionlessly flush accrued fill fees to feeRecipient.
+    function sweepFees() external nonReentrant {
+        uint256 amount = accruedFees;
+        if (amount == 0) revert NothingToSweep();
+        accruedFees = 0;
+        musd.safeTransfer(feeRecipient, amount);
+        emit FeeSwept(feeRecipient, amount);
+    }
+
+    function getListing(
+        uint256 listingId
+    ) external view returns (Listing memory) {
+        return listings[listingId];
+    }
+}

@@ -10,6 +10,7 @@ cache/
 broadcast/
 deployments/local/
 deployments/*.secret.json
+docs/verify/build-info/
 
 # Node
 node_modules/
