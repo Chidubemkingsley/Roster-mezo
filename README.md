@@ -18,6 +18,7 @@ scope, changes since Wave 1, and acceptance criteria are in
 [`docs/WAVE_2.md`](docs/WAVE_2.md).
 
 **Live links:** [Hosted app](https://roster-mezo.vercel.app/) ·
+[Demo video](https://youtu.be/jMWep5m_Dmc) ·
 [Slide deck](https://gamma.app/docs/Roster-Fixed-Series-BTC-Puts-on-Mezo-rzd9bk9woo3ois0) ·
 [Mezo testnet explorer](https://explorer.test.mezo.org/address/0xC23167867baAF830D586598DE0634E26fD895b92)
 
