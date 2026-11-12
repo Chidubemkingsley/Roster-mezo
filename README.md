@@ -1338,7 +1338,9 @@ Roster product. The full transaction ledger and limitations are in
 
 ## 17. Verifying the live deployment
 
-### 17.1 Explorer
+### 17.1 Explorer links
+
+**Wave 1 contracts:**
 
 - Factory: `https://explorer.test.mezo.org/address/0xEeCCD2bb5c0605F3eaCDC4dA221D9bdeDa580D2F`
 - Main series: `https://explorer.test.mezo.org/address/0xC23167867baAF830D586598DE0634E26fD895b92`
@@ -1348,7 +1350,66 @@ Roster product. The full transaction ledger and limitations are in
 - Position wrapper: `https://explorer.test.mezo.org/address/0x4726a021ec380a755EBE883BEb800A5d06723E41`
 - Wrapper/MUSD pool: `https://explorer.test.mezo.org/address/0xED305fEF4c11f95dAe1d144e78B2B62be50965F2`
 
-### 17.2 Key reads
+**Wave 2 contracts:**
+
+- Factory (W2): `https://explorer.test.mezo.org/address/0x1ee9eCc9E526c41c9D190dDD06FF286deb6727c9`
+- Order book (W2): `https://explorer.test.mezo.org/address/0xeecAb683D93a483669D797E4B7a06e8c286A25dC`
+- Vault (W2): `https://explorer.test.mezo.org/address/0xc3Ff91EF99fcB8AE19CAc7698BB1eFAAd704C243`
+- Series (W2): `https://explorer.test.mezo.org/address/0x68540003Ee52F73C3F2D8D6508227E8eCd5E767b`
+
+### 17.2 Source verification (Wave 2 contracts)
+
+The Mezo testnet explorer runs a self-hosted Blockscout instance. The Blockscout unified
+API does not index chain 31611, so automated `forge verify-contract` cannot be used.
+Flattened source files and standard JSON inputs for all four Wave 2 contracts are in
+[`docs/verify/`](docs/verify/). The [`docs/verify/README.md`](docs/verify/README.md)
+has step-by-step instructions and all constructor arguments.
+
+Compiler settings for all Wave 2 contracts:
+
+| Setting     | Value               |
+| ----------- | ------------------- |
+| Compiler    | Solidity `0.8.24`   |
+| EVM version | `shanghai`          |
+| Optimizer   | enabled, `200` runs |
+| via IR      | `true`              |
+| License     | MIT                 |
+
+To verify via the Mezo explorer UI:
+
+1. Open `https://explorer.test.mezo.org/address/<ADDRESS>`
+2. Click the **Contract** tab → **Verify and publish**
+3. Choose **Solidity (Standard JSON input)**
+4. Upload the matching `*_standard_input.json` from `docs/verify/`
+5. Enter the constructor args from `docs/verify/README.md`
+
+### 17.3 Key reads (Wave 2)
+
+```bash
+RPC=https://rpc.test.mezo.org
+VAULT=0xc3Ff91EF99fcB8AE19CAc7698BB1eFAAd704C243
+SERIES=0x68540003Ee52F73C3F2D8D6508227E8eCd5E767b
+BOOK=0xeecAb683D93a483669D797E4B7a06e8c286A25dC
+
+# Trove state (collateral, debt, ICR, price, status)
+cast call $VAULT "troveInfo()(uint256,uint256,uint256,uint256,uint8)" --rpc-url "$RPC"
+
+# Recovery Mode
+cast call $VAULT "isInRecoveryMode()(bool)" --rpc-url "$RPC"
+cast call $VAULT "systemTCR()(uint256)" --rpc-url "$RPC"
+
+# Series state
+cast call $SERIES "active_lots()(uint256)" --rpc-url "$RPC"
+cast call $SERIES "collateral_balance_raw()(uint256)" --rpc-url "$RPC"
+cast call $SERIES "total_fees_collected_raw()(uint256)" --rpc-url "$RPC"
+cast call $SERIES "feeBps()(uint256)" --rpc-url "$RPC"
+
+# Order book fees
+cast call $BOOK "accruedFees()(uint256)" --rpc-url "$RPC"
+cast call $BOOK "fillFeeBps()(uint256)" --rpc-url "$RPC"
+```
+
+### 17.4 Key reads (Wave 1)
 
 ```bash
 RPC=https://rpc.test.mezo.org
@@ -1361,7 +1422,7 @@ cast call 0xC23167867baAF830D586598DE0634E26fD895b92 \
 cast call 0xC23167867baAF830D586598DE0634E26fD895b92 \
   "premium_balance_raw()(uint256)" --rpc-url "$RPC"
 
-# Trove
+# Wave 1 trove
 cast call 0x214e2316EAEeE24c1dc5d8433329fFC7544DA331 \
   "troveInfo()(uint256,uint256,uint256,uint256,uint8)" --rpc-url "$RPC"
 
@@ -1380,7 +1441,7 @@ cast call 0x4947243CC818b627A5D06d14C4eCe7398A23Ce1A \
   "isPool(address)(bool)" 0xED305fEF4c11f95dAe1d144e78B2B62be50965F2 --rpc-url "$RPC"
 ```
 
-### 17.3 Reproducing the test suite
+### 17.5 Reproducing the test suite
 
 ```bash
 forge fmt --check
